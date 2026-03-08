@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { formatRoleKind } from "../lib/api";
 
 interface FiltersProps {
@@ -28,6 +29,23 @@ export function Filters({
   onOrganizationChange,
   onFreshnessChange,
 }: FiltersProps) {
+  const { offices, members } = useMemo(() => {
+    const offs: string[] = [];
+    const mems: string[] = [];
+    for (const org of organizations) {
+      if (org.startsWith("Senator ") || org === "Confidential") {
+        mems.push(org);
+      } else {
+        offs.push(org);
+      }
+    }
+    return { offices: offs, members: mems };
+  }, [organizations]);
+
+  const isMemberSelected =
+    selectedOrganization.startsWith("Senator ") ||
+    selectedOrganization === "Confidential";
+
   const selectClasses =
     "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-body text-slate-700 focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/30";
 
@@ -49,17 +67,33 @@ export function Filters({
 
       <select
         aria-label="Organization"
-        value={selectedOrganization}
+        value={isMemberSelected ? "" : selectedOrganization}
         onChange={(e) => onOrganizationChange(e.target.value)}
         className={selectClasses}
       >
         <option value="">All organizations</option>
-        {organizations.map((org) => (
+        {offices.map((org) => (
           <option key={org} value={org}>
             {org}
           </option>
         ))}
       </select>
+
+      {members.length > 0 && (
+        <select
+          aria-label="Member"
+          value={isMemberSelected ? selectedOrganization : ""}
+          onChange={(e) => onOrganizationChange(e.target.value)}
+          className={selectClasses}
+        >
+          <option value="">All members</option>
+          {members.map((mem) => (
+            <option key={mem} value={mem}>
+              {mem.replace(/^Senator /, "")}
+            </option>
+          ))}
+        </select>
+      )}
 
       <select
         aria-label="Posted within"
