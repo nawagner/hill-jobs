@@ -1,7 +1,8 @@
 import os
+from collections.abc import Generator
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
 def _get_url() -> str:
@@ -18,6 +19,15 @@ def get_engine():
 
 def get_session():
     return sessionmaker(bind=get_engine())
+
+
+def get_db() -> Generator[Session, None, None]:
+    SessionLocal = get_session()
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class Base(DeclarativeBase):

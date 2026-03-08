@@ -1,0 +1,135 @@
+from datetime import datetime, timezone
+
+from app.models.jobs import Job
+
+
+def _seed_jobs(db_session):
+    now = datetime.now(timezone.utc)
+    jobs = [
+        Job(
+            slug="senate-101",
+            title="Software Engineer",
+            source_organization="Senate IT",
+            source_system="senate-webscribble",
+            source_job_id="101",
+            source_url="https://example.com/101",
+            status="open",
+            role_kind="technology",
+            description_html="<p>Build systems</p>",
+            description_text="Build systems",
+            search_document="Software Engineer Build systems",
+            posted_at=now,
+        ),
+        Job(
+            slug="senate-102",
+            title="Communications Director",
+            source_organization="Senate Press",
+            source_system="senate-webscribble",
+            source_job_id="102",
+            source_url="https://example.com/102",
+            status="open",
+            role_kind="communications",
+            description_html="<p>Manage press</p>",
+            description_text="Manage press",
+            search_document="Communications Director Manage press",
+            posted_at=now,
+        ),
+        Job(
+            slug="loc-201",
+            title="Librarian",
+            source_organization="Library of Congress",
+            source_system="loc-careers",
+            source_job_id="201",
+            source_url="https://example.com/201",
+            status="open",
+            role_kind="operations",
+            description_html="<p>Catalog books</p>",
+            description_text="Catalog books",
+            search_document="Librarian Catalog books",
+            posted_at=now,
+        ),
+        Job(
+            slug="senate-closed",
+            title="Policy Analyst",
+            source_organization="Senate IT",
+            source_system="senate-webscribble",
+            source_job_id="999",
+            source_url="https://example.com/999",
+            status="closed",
+            role_kind="policy",
+            description_html="<p>Closed role</p>",
+            description_text="Closed role",
+            search_document="Policy Analyst Closed role",
+            posted_at=now,
+        ),
+    ]
+    for j in jobs:
+        db_session.add(j)
+    db_session.commit()
+
+
+def test_list_jobs_excludes_closed(test_client, db_session):
+    _seed_jobs(db_session)
+    resp = test_client.get("/api/jobs")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 3
+    slugs = [item["slug"] for item in data["items"]]
+    assert "senate-closed" not in slugs
+
+
+def test_list_jobs_filter_by_role_kind(test_client, db_session):
+    _seed_jobs(db_session)
+    resp = test_client.get("/api/jobs", params={"role_kind": "technology"})
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["slug"] == "senate-101"
+
+
+def test_list_jobs_filter_by_organization(test_client, db_session):
+    _seed_jobs(db_session)
+    resp = test_client.get("/api/jobs", params={"organization": "Library of Congress"})
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["slug"] == "loc-201"
+
+
+def test_list_jobs_keyword_search(test_client, db_session):
+    _seed_jobs(db_session)
+    resp = test_client.get("/api/jobs", params={"q": "Engineer"})
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["slug"] == "senate-101"
+
+
+def test_get_job_detail(test_client, db_session):
+    _seed_jobs(db_session)
+    resp = test_client.get("/api/jobs/senate-101")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["title"] == "Software Engineer"
+    assert data["source_system"] == "senate-webscribble"
+    assert data["description_html"] == "<p>Build systems</p>"
+
+
+def test_get_job_not_found(test_client, db_session):
+    resp = test_client.get("/api/jobs/nonexistent")
+    assert resp.status_code == 404
+
+
+def test_list_organizations(test_client, db_session):
+    _seed_jobs(db_session)
+    resp = test_client.get("/api/organizations")
+    assert resp.status_code == 200
+    orgs = resp.json()
+    assert "Library of Congress" in orgs
+    assert "Senate IT" in orgs
+    # Closed job org should still appear if other open jobs share it
+    assert len(orgs) == 3
+
+
+def test_list_role_kinds(test_client):
+    resp = test_client.get("/api/role-kinds")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data == ["policy", "communications", "legal", "operations", "technology", "security"]
