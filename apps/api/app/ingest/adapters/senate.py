@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import httpx
 from bs4 import BeautifulSoup
 
+from app.ingest.salary_parser import parse_salary_from_text
 from app.lib.fetch_html import fetch_page
 from app.schemas.ingest import SourceJob
 
@@ -70,6 +71,8 @@ def _parse_api_job(item: dict, client: httpx.Client) -> SourceJob:
             logger.debug("Could not fetch detail for %s", url)
             desc_html = f"<p>{short_desc}</p>"
 
+    sal_min, sal_max, sal_period = _extract_salary(item)
+
     return SourceJob(
         source_system=SOURCE_SYSTEM,
         source_organization=organization,
@@ -80,8 +83,21 @@ def _parse_api_job(item: dict, client: httpx.Client) -> SourceJob:
         description_text=desc_text or short_desc,
         location_text=location,
         posted_at=posted_date,
+        salary_min=sal_min,
+        salary_max=sal_max,
+        salary_period=sal_period,
         raw_payload=item,
     )
+
+
+def _extract_salary(item: dict) -> tuple[float | None, float | None, str | None]:
+    for block in item.get("customBlockList", []):
+        if block.get("path") == "approx_salary_text" and block.get("value"):
+            parsed = parse_salary_from_text(block["value"])
+            if parsed:
+                return parsed.min_value, parsed.max_value, parsed.period
+            break
+    return None, None, None
 
 
 def _extract_description(html: str) -> tuple[str, str]:

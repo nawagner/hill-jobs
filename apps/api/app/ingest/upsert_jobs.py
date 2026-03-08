@@ -73,7 +73,8 @@ def _find_existing(session: Session, src: SourceJob) -> Job | None:
 def _update_existing(job: Job, src: SourceJob, now: datetime) -> bool:
     changed = False
     for attr in ("title", "description_html", "description_text", "location_text",
-                 "employment_type", "source_url", "posted_at", "closing_at"):
+                 "employment_type", "source_url", "posted_at", "closing_at",
+                 "salary_min", "salary_max", "salary_period"):
         new_val = getattr(src, attr)
         if new_val is not None and getattr(job, attr) != new_val:
             setattr(job, attr, new_val)
@@ -116,6 +117,9 @@ def _insert_new(session: Session, src: SourceJob, now: datetime) -> Job:
         description_html=src.description_html,
         description_text=src.description_text,
         search_document=f"{src.title} {src.description_text}",
+        salary_min=src.salary_min,
+        salary_max=src.salary_max,
+        salary_period=src.salary_period,
         raw_payload=src.raw_payload,
         posted_at=src.posted_at,
         closing_at=src.closing_at,

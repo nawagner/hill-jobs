@@ -82,15 +82,23 @@ def _parse_result(item: dict) -> SourceJob | None:
     location = desc.get("PositionLocationDisplay", "")
 
     # Salary info
-    salary = ""
+    salary_min = None
+    salary_max = None
+    salary_period = None
     remuneration = desc.get("PositionRemuneration", [])
     if remuneration:
         r = remuneration[0]
         min_pay = r.get("MinimumRange", "")
         max_pay = r.get("MaximumRange", "")
-        rate = r.get("Description", "")
-        if min_pay and max_pay:
-            salary = f"${min_pay} - ${max_pay} {rate}"
+        rate_code = r.get("RateIntervalCode", "")
+        if min_pay:
+            salary_min = float(min_pay)
+        if max_pay:
+            salary_max = float(max_pay)
+        if rate_code == "PA":
+            salary_period = "yearly"
+        elif rate_code == "PH":
+            salary_period = "hourly"
 
     # Dates
     posted_at = _parse_iso_date(desc.get("PublicationStartDate"))
@@ -119,6 +127,9 @@ def _parse_result(item: dict) -> SourceJob | None:
         employment_type=grade,
         posted_at=posted_at,
         closing_at=closing_at,
+        salary_min=salary_min,
+        salary_max=salary_max,
+        salary_period=salary_period,
         raw_payload=item,
     )
 

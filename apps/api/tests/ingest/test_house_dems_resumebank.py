@@ -80,6 +80,24 @@ def test_location_from_job_location():
     assert jobs[3].location_text == "Washington, DC"
 
 
+def test_salary_from_base_salary():
+    jobs = _load_fixture()
+    # Third job (Staff Assistant) has baseSalary with value "60,000" and unitText "YEAR"
+    staff_asst = jobs[2]
+    assert staff_asst.salary_min == 60_000
+    assert staff_asst.salary_max == 60_000
+    assert staff_asst.salary_period == "yearly"
+
+
+def test_salary_empty_value_is_none():
+    jobs = _load_fixture()
+    # First job (Internship) has baseSalary with empty value ""
+    intern = jobs[0]
+    assert intern.salary_min is None
+    assert intern.salary_max is None
+    assert intern.salary_period is None
+
+
 def test_empty_input():
     jobs = parse_jobs([])
     assert jobs == []

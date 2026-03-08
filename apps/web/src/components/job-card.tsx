@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import type { JobListItem } from "../lib/api";
-import { formatDate, formatRoleKind, getEmployerDisplay } from "../lib/api";
+import { formatDate, formatRoleKind, formatSalary, getEmployerDisplay } from "../lib/api";
 import { StatusBadge } from "./status-badge";
 
 const roleColors: Record<string, string> = {
@@ -54,6 +54,13 @@ export function JobCard({ job }: { job: JobListItem }) {
             {job.location_text}
           </span>
         )}
+
+        <span className={`inline-flex items-center gap-1 ${job.salary_min != null ? "text-slate-500" : "text-slate-400"}`}>
+          <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95c-.285.475-.507 1-.67 1.55H6a1 1 0 000 2h.013a9.358 9.358 0 000 1H6a1 1 0 100 2h.351c.163.55.385 1.075.67 1.55C7.721 15.216 8.768 16 10 16s2.279-.784 2.979-1.95a1 1 0 10-1.715-1.029c-.472.786-.96.979-1.264.979-.304 0-.792-.193-1.264-.979a5.95 5.95 0 01-.342-.521H10a1 1 0 100-2H8.092a7.364 7.364 0 010-1H10a1 1 0 100-2H8.394c.1-.183.21-.357.342-.521z" />
+          </svg>
+          {formatSalary(job)}
+        </span>
 
         {job.posted_at && (
           <span className="text-slate-400 ml-auto">

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import httpx
 from bs4 import BeautifulSoup
 
+from app.ingest.salary_parser import parse_salary_from_text
 from app.lib.fetch_html import fetch_page
 from app.schemas.ingest import SourceJob
 
@@ -202,6 +203,13 @@ def parse_api_response(data: dict, config: CsodConfig) -> list[SourceJob]:
         desc = item.get("description", item.get("jobDescription", ""))
         url = item.get("applyUrl", f"{config.base_url}/ux/ats/careersite/{config.career_site_id}/home/requisition/{req_id}")
 
+        salary_min = salary_max = salary_period = None
+        parsed_salary = parse_salary_from_text(desc)
+        if parsed_salary:
+            salary_min = parsed_salary.min_value
+            salary_max = parsed_salary.max_value
+            salary_period = parsed_salary.period
+
         jobs.append(
             SourceJob(
                 source_system=config.source_system,
@@ -212,6 +220,9 @@ def parse_api_response(data: dict, config: CsodConfig) -> list[SourceJob]:
                 description_html=f"<p>{desc}</p>" if desc else "",
                 description_text=desc,
                 location_text=location or None,
+                salary_min=salary_min,
+                salary_max=salary_max,
+                salary_period=salary_period,
                 raw_payload=item,
             )
         )

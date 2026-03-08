@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, JSON, String, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, JSON, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -30,6 +30,9 @@ class Job(Base):
     description_html: Mapped[str] = mapped_column(Text, default="")
     description_text: Mapped[str] = mapped_column(Text, default="")
     search_document: Mapped[str | None] = mapped_column(Text)
+    salary_min: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    salary_max: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    salary_period: Mapped[str | None] = mapped_column(String(20))
     raw_payload: Mapped[dict | None] = mapped_column(JSON)
     posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     closing_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

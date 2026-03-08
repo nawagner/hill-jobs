@@ -43,6 +43,8 @@ def _parse_job(item: dict) -> SourceJob:
         separator=" ", strip=True
     )
 
+    salary_min, salary_max, salary_period = _extract_salary(item)
+
     return SourceJob(
         source_system=SOURCE_SYSTEM,
         source_organization=SOURCE_ORG,
@@ -55,8 +57,30 @@ def _parse_job(item: dict) -> SourceJob:
         employment_type=_normalize_employment_type(item.get("employmentType")),
         posted_at=_parse_datetime(item.get("createdAt")),
         closing_at=_parse_datetime(item.get("validThrough")),
+        salary_min=salary_min,
+        salary_max=salary_max,
+        salary_period=salary_period,
         raw_payload=item,
     )
+
+
+def _extract_salary(item: dict) -> tuple[float | None, float | None, str | None]:
+    base_salary = item.get("baseSalary")
+    if not base_salary or not isinstance(base_salary, dict):
+        return None, None, None
+    value_obj = base_salary.get("value", {})
+    if not isinstance(value_obj, dict):
+        return None, None, None
+    raw_val = value_obj.get("value", "")
+    if not raw_val:
+        return None, None, None
+    numeric = float(str(raw_val).replace(",", ""))
+    unit = value_obj.get("unitText", "")
+    if unit == "HOUR":
+        period = "hourly"
+    else:
+        period = "yearly"
+    return numeric, numeric, period
 
 
 def _parse_location(loc: dict) -> str | None:
