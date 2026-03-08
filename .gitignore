@@ -1,0 +1,9 @@
+node_modules/
+.env
+.dev.vars
+.wrangler/
+dist/
+.venv/
+__pycache__/
+.pytest_cache/
+.DS_Store
