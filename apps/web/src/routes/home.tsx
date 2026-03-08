@@ -176,7 +176,7 @@ export function Home() {
               <p className="pb-4 text-sm font-body text-slate-500 leading-relaxed">
                 Most listings are refreshed daily and typically appear within
                 24 hours of being posted on their original career page. House
-                positions sourced from the House Bulletin
+                positions sourced from the House Employment Bulletin
                 are updated weekly.
               </p>
             </details>
