@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class JobListItem(BaseModel):
     slug: str
     title: str
+    source_system: str
     source_organization: str
     source_url: str
     status: str
@@ -17,7 +18,6 @@ class JobListItem(BaseModel):
 
 
 class JobDetail(JobListItem):
-    source_system: str
     source_job_id: str | None = None
     description_html: str
     description_text: str

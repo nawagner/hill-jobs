@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 font-body;
+  }
+
+  /* Prose overrides for job descriptions */
+  .prose ul {
+    @apply list-disc pl-5;
+  }
+
+  .prose ol {
+    @apply list-decimal pl-5;
+  }
+
+  .prose p {
+    @apply mb-3 leading-relaxed;
+  }
+
+  .prose h2 {
+    @apply text-xl font-bold mt-6 mb-3;
+  }
+
+  .prose h3 {
+    @apply text-lg font-semibold mt-5 mb-2;
+  }
+
+  .prose li {
+    @apply mb-1.5;
+  }
+}

@@ -1,5 +1,8 @@
+import json
+
 from app.ingest.adapters.csod import (
     CsodConfig,
+    _parse_browser_result,
     parse_listing_page,
     parse_api_response,
 )
@@ -61,4 +64,29 @@ def test_parse_api_response():
 def test_empty_listing_returns_empty():
     html = "<html><body><p>No jobs found</p></body></html>"
     jobs = parse_listing_page(html, TEST_CONFIG)
+    assert jobs == []
+
+
+def test_parse_browser_result():
+    items = [
+        {"title": "Police Officer", "href": "/ux/ats/careersite/1/home/requisition/718?c=uscp", "reqId": "718"},
+        {"title": "Special Agent", "href": "/ux/ats/careersite/1/home/requisition/724?c=uscp", "reqId": "724"},
+    ]
+    stdout = json.dumps({"success": True, "data": {"result": json.dumps(items)}, "error": None})
+    jobs = _parse_browser_result(stdout, TEST_CONFIG)
+    assert len(jobs) == 2
+    assert jobs[0].title == "Police Officer"
+    assert jobs[0].source_job_id == "718"
+    assert jobs[0].source_url == "https://test.csod.com/ux/ats/careersite/1/home/requisition/718?c=uscp"
+    assert jobs[1].title == "Special Agent"
+
+
+def test_parse_browser_result_empty():
+    stdout = json.dumps({"success": True, "data": {"result": "[]"}, "error": None})
+    jobs = _parse_browser_result(stdout, TEST_CONFIG)
+    assert jobs == []
+
+
+def test_parse_browser_result_invalid_json():
+    jobs = _parse_browser_result("not json", TEST_CONFIG)
     assert jobs == []
