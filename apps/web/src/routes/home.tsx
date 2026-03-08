@@ -174,8 +174,10 @@ export function Home() {
                 <span className="ml-2 text-gold-500 transition-transform group-open:rotate-45">+</span>
               </summary>
               <p className="pb-4 text-sm font-body text-slate-500 leading-relaxed">
-                Listings are refreshed daily. New positions typically appear within
-                24 hours of being posted on their original career page.
+                Most listings are refreshed daily and typically appear within
+                24 hours of being posted on their original career page. House
+                positions sourced from the House Vacancy Announcement bulletin
+                are updated weekly.
               </p>
             </details>
             <details className="group">
