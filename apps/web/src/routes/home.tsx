@@ -148,6 +148,71 @@ export function Home() {
           </>
         )}
       </main>
+
+      {/* FAQ */}
+      <section className="border-t border-slate-200 bg-white py-12">
+        <div className="mx-auto max-w-3xl px-6">
+          <h2 className="font-display text-2xl font-bold text-navy-900 mb-6">
+            Frequently Asked Questions
+          </h2>
+          <div className="divide-y divide-slate-200 border-y border-slate-200">
+            <details className="group">
+              <summary className="flex cursor-pointer items-center justify-between py-4 text-sm font-body font-medium text-slate-700 hover:text-navy-900">
+                Where does this data come from?
+                <span className="ml-2 text-gold-500 transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="pb-4 text-sm font-body text-slate-500 leading-relaxed">
+                Hill Jobs collects publicly posted job listings from the official career
+                pages of legislative branch employers, including the U.S. Senate, the
+                U.S. House of Representatives, the U.S. Capitol Police, the Library of
+                Congress, and the Architect of the Capitol.
+              </p>
+            </details>
+            <details className="group">
+              <summary className="flex cursor-pointer items-center justify-between py-4 text-sm font-body font-medium text-slate-700 hover:text-navy-900">
+                How often are listings updated?
+                <span className="ml-2 text-gold-500 transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="pb-4 text-sm font-body text-slate-500 leading-relaxed">
+                Most listings are refreshed daily and typically appear within
+                24 hours of being posted on their original career page. House
+                positions sourced from the House Employment Bulletin
+                are updated weekly.
+              </p>
+            </details>
+            <details className="group">
+              <summary className="flex cursor-pointer items-center justify-between py-4 text-sm font-body font-medium text-slate-700 hover:text-navy-900">
+                Can I apply for jobs through Hill Jobs?
+                <span className="ml-2 text-gold-500 transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="pb-4 text-sm font-body text-slate-500 leading-relaxed">
+                No. Hill Jobs is a search tool only. Each listing links directly to the
+                original posting where you can review full details and submit your
+                application.
+              </p>
+            </details>
+            <details className="group">
+              <summary className="flex cursor-pointer items-center justify-between py-4 text-sm font-body font-medium text-slate-700 hover:text-navy-900">
+                Is this an official government website?
+                <span className="ml-2 text-gold-500 transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="pb-4 text-sm font-body text-slate-500 leading-relaxed">
+                No. Hill Jobs is not affiliated with or endorsed by the U.S. Congress or
+                any government agency. It is a project
+                by{" "}
+                <a
+                  href="https://www.learningjourneyai.com/"
+                  className="text-gold-600 underline hover:text-gold-700"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Learning Journey AI
+                </a>.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
     </>
   );
 }
