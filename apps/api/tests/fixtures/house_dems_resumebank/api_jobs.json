@@ -1,0 +1,132 @@
+[
+  {
+    "id": 994766,
+    "uid": 32962,
+    "title": "Summer 2026 Internship",
+    "hiringOrganization": {
+      "name": {
+        "text": "Cleaver, Emanuel - Rep.",
+        "value": "C001061"
+      },
+      "@type": "Organization"
+    },
+    "jobLocation": {},
+    "validThrough": "2026-03-19T00:00:00.000Z",
+    "link": "MO5internships@mail.house.gov",
+    "linkSubject": "DC Summer 2026: [First Name] [Last Name]",
+    "description": "<p><strong>Applications are now open for Congressman Cleaver's Summer 2026 D.C. Internship Program.</strong> The D.C. program allows interns to gain congressional experience.</p>",
+    "employmentType": "Intern",
+    "positionCategory": "Intern",
+    "baseSalary": {
+      "@type": "MonetaryAmount",
+      "value": {
+        "@type": "QuantitativeValue",
+        "value": "",
+        "unitText": "YEAR"
+      },
+      "currency": "USD"
+    },
+    "status": null,
+    "applicationCode": null,
+    "applyType": "email",
+    "createdAt": "2026-03-06T21:40:26.000Z",
+    "updatedAt": "2026-03-06T21:41:39.000Z"
+  },
+  {
+    "id": 994760,
+    "uid": 68754,
+    "title": "Communications Director",
+    "hiringOrganization": {
+      "name": {
+        "text": "Menefee, Christian D. - Rep.",
+        "value": "M001245"
+      },
+      "@type": "Organization"
+    },
+    "jobLocation": {},
+    "validThrough": "2026-05-05T00:00:00.000Z",
+    "link": "Freedom.Richardson@Mail.House.Gov",
+    "linkSubject": null,
+    "description": "<p>The <strong>Office of Congressman Christian Menefee (TX-18)</strong> is excited to invite applications for a <strong>Communications Director</strong>.</p>",
+    "employmentType": "",
+    "positionCategory": "Communications",
+    "baseSalary": {
+      "@type": "MonetaryAmount",
+      "value": {
+        "@type": "QuantitativeValue",
+        "value": "",
+        "unitText": "YEAR"
+      },
+      "currency": "USD"
+    },
+    "status": null,
+    "applicationCode": null,
+    "applyType": "email",
+    "createdAt": "2026-03-06T19:09:42.000Z",
+    "updatedAt": "2026-03-06T19:09:42.000Z"
+  },
+  {
+    "id": 994749,
+    "uid": 68660,
+    "title": "Staff Assistant/Legislative Correspondent/Driver",
+    "hiringOrganization": {
+      "name": {
+        "text": "Jayapal, Pramila - Rep.",
+        "value": "J000298"
+      },
+      "@type": "Organization"
+    },
+    "jobLocation": {},
+    "validThrough": "2026-08-31T00:00:00.000Z",
+    "link": "jobs.pramila@mail.house.gov",
+    "linkSubject": "Staff Assistant",
+    "description": "<p>The Office of U.S. Representative Pramila Jayapal (WA-07) seeks a Staff Assistant/Legislative Correspondent/Driver.</p>",
+    "employmentType": "Full Time",
+    "positionCategory": "Administrative",
+    "baseSalary": {
+      "@type": "MonetaryAmount",
+      "value": {
+        "@type": "QuantitativeValue",
+        "value": "60,000",
+        "unitText": "YEAR"
+      },
+      "currency": "USD"
+    },
+    "status": null,
+    "applicationCode": null,
+    "applyType": "email",
+    "createdAt": "2026-03-04T15:19:51.000Z",
+    "updatedAt": "2026-03-04T15:19:51.000Z"
+  },
+  {
+    "id": 994669,
+    "uid": 31174,
+    "title": "Communications Director",
+    "hiringOrganization": {
+      "name": {
+        "text": "Office of Congresswoman Debbie Dingell",
+        "value": "dingell"
+      },
+      "@type": "Organization"
+    },
+    "jobLocation": {
+      "@type": "Place",
+      "address": {
+        "addressRegion": "DC",
+        "addressLocality": "Washington"
+      }
+    },
+    "validThrough": null,
+    "link": "dingell.jobs@mail.house.gov",
+    "linkSubject": "Communications Director - [Name]",
+    "description": "<p>Congresswoman Debbie Dingell (MI-06) seeks a Communications Director.</p>",
+    "employmentType": "FULL_TIME",
+    "positionCategory": "Communications",
+    "baseSalary": null,
+    "status": "Published",
+    "applicationCode": null,
+    "applyType": "email",
+    "createdAt": "2026-01-29T13:50:29.000Z",
+    "updatedAt": "2026-01-29T13:50:29.000Z"
+  }
+]
