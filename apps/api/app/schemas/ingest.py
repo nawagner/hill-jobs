@@ -15,4 +15,7 @@ class SourceJob(BaseModel):
     employment_type: str | None = None
     posted_at: datetime | None = None
     closing_at: datetime | None = None
+    salary_min: float | None = None
+    salary_max: float | None = None
+    salary_period: str | None = None
     raw_payload: dict = {}

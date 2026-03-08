@@ -20,6 +20,28 @@ def test_parse_result():
     assert job.source_url
 
 
+def test_salary_yearly():
+    data = json.loads((FIXTURES / "search_response.json").read_text())
+    items = data["SearchResult"]["SearchResultItems"]
+    # First item: Purchasing Agent, PA (per annum)
+    job = _parse_result(items[0])
+    assert job is not None
+    assert job.salary_min == 57_736
+    assert job.salary_max == 75_059
+    assert job.salary_period == "yearly"
+
+
+def test_salary_hourly():
+    data = json.loads((FIXTURES / "search_response.json").read_text())
+    items = data["SearchResult"]["SearchResultItems"]
+    # Second item: Mason Leader, PH (per hour)
+    job = _parse_result(items[1])
+    assert job is not None
+    assert job.salary_min == 40.18
+    assert job.salary_max == 46.88
+    assert job.salary_period == "hourly"
+
+
 def test_non_aoc_job_filtered():
     fake_item = {
         "MatchedObjectDescriptor": {

@@ -8,6 +8,9 @@ export interface JobListItem {
   role_kind: string;
   location_text: string | null;
   employment_type: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_period: string | null;
   posted_at: string | null;
   closing_at: string | null;
 }
@@ -52,7 +55,13 @@ export async function getJob(slug: string): Promise<JobDetail> {
   return res.json();
 }
 
-export async function getOrganizations(): Promise<string[]> {
+export interface OrganizationItem {
+  name: string;
+  source_system: string;
+  party: string | null;
+}
+
+export async function getOrganizations(): Promise<OrganizationItem[]> {
   const res = await fetch("/api/organizations");
   if (!res.ok) throw new Error(`Failed to load organizations: ${res.status}`);
   return res.json();
@@ -82,6 +91,22 @@ const EMPLOYER_NAMES: Record<string, string> = {
   "aoc-usajobs": "Architect of the Capitol",
   "house-bulletin": "U.S. House of Representatives",
 };
+
+export function formatSalary(job: Pick<JobListItem, "salary_min" | "salary_max" | "salary_period">): string {
+  if (job.salary_min == null && job.salary_max == null) {
+    return "Unable to find salary";
+  }
+  const fmt = (n: number) =>
+    n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const period = job.salary_period === "hourly" ? "/hr" : "/yr";
+  const min = job.salary_min;
+  const max = job.salary_max;
+  if (min != null && max != null && min !== max) {
+    return `${fmt(min)} – ${fmt(max)} ${period}`;
+  }
+  const value = min ?? max!;
+  return `${fmt(value)} ${period}`;
+}
 
 export function getEmployerDisplay(job: Pick<JobListItem, "source_system" | "source_organization">) {
   const employer = EMPLOYER_NAMES[job.source_system] || job.source_organization;

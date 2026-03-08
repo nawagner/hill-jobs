@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { formatRoleKind } from "../lib/api";
+import type { OrganizationItem } from "../lib/api";
 
 interface FiltersProps {
   roleKinds: string[];
-  organizations: string[];
+  organizations: OrganizationItem[];
   selectedRoleKind: string;
   selectedOrganization: string;
   selectedFreshness: string;
@@ -19,6 +20,26 @@ const freshnessOptions = [
   { label: "Last 90 days", value: "90" },
 ];
 
+const CHAMBER_LABELS: Record<string, string> = {
+  senate: "Senate",
+  house: "House",
+  legislative: "Legislative Branch",
+};
+
+const SOURCE_TO_CHAMBER: Record<string, string> = {
+  "senate-webscribble": "senate",
+  "csod-house-cao": "house",
+  "house-bulletin": "house",
+  "house-dems-resumebank": "house",
+  "csod-uscp": "legislative",
+  "loc-careers": "legislative",
+  "aoc-usajobs": "legislative",
+};
+
+function stripPartySuffix(name: string): string {
+  return name.replace(/ - (Democrats|Republicans|Non-designated)$/, "");
+}
+
 export function Filters({
   roleKinds,
   organizations,
@@ -29,17 +50,24 @@ export function Filters({
   onOrganizationChange,
   onFreshnessChange,
 }: FiltersProps) {
-  const { offices, members } = useMemo(() => {
-    const offs: string[] = [];
-    const mems: string[] = [];
+  const { officeGroups, members } = useMemo(() => {
+    const mems: OrganizationItem[] = [];
+    const grouped: Record<string, OrganizationItem[]> = {
+      senate: [],
+      house: [],
+      legislative: [],
+    };
+
     for (const org of organizations) {
-      if (org.startsWith("Senator ") || org === "Confidential") {
+      if (org.name.startsWith("Senator ") || org.name === "Confidential") {
         mems.push(org);
       } else {
-        offs.push(org);
+        const chamber = SOURCE_TO_CHAMBER[org.source_system] || "legislative";
+        grouped[chamber].push(org);
       }
     }
-    return { offices: offs, members: mems };
+
+    return { officeGroups: grouped, members: mems };
   }, [organizations]);
 
   const isMemberSelected =
@@ -48,6 +76,8 @@ export function Filters({
 
   const selectClasses =
     "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-body text-slate-700 focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/30";
+
+  const chamberOrder = ["senate", "house", "legislative"] as const;
 
   return (
     <div className="flex flex-wrap gap-3" role="group" aria-label="Filters">
@@ -72,11 +102,19 @@ export function Filters({
         className={selectClasses}
       >
         <option value="">All organizations</option>
-        {offices.map((org) => (
-          <option key={org} value={org}>
-            {org}
-          </option>
-        ))}
+        {chamberOrder.map((chamber) => {
+          const orgs = officeGroups[chamber];
+          if (orgs.length === 0) return null;
+          return (
+            <optgroup key={chamber} label={CHAMBER_LABELS[chamber]}>
+              {orgs.map((org) => (
+                <option key={org.name} value={org.name}>
+                  {stripPartySuffix(org.name)}
+                </option>
+              ))}
+            </optgroup>
+          );
+        })}
       </select>
 
       {members.length > 0 && (
@@ -87,11 +125,15 @@ export function Filters({
           className={selectClasses}
         >
           <option value="">All members</option>
-          {members.map((mem) => (
-            <option key={mem} value={mem}>
-              {mem.replace(/^Senator /, "")}
-            </option>
-          ))}
+          {members.map((mem) => {
+            const displayName = mem.name.replace(/^Senator /, "");
+            const partyLabel = mem.party ? ` (${mem.party})` : "";
+            return (
+              <option key={mem.name} value={mem.name}>
+                {displayName}{partyLabel}
+              </option>
+            );
+          })}
         </select>
       )}
 

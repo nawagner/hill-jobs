@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import type { JobSearchResponse } from "../lib/api";
+import type { JobSearchResponse, OrganizationItem } from "../lib/api";
 import { searchJobs, getOrganizations, getRoleKinds } from "../lib/api";
 import { SearchForm } from "../components/search-form";
 import { Filters } from "../components/filters";
@@ -10,7 +10,7 @@ import { Pagination } from "../components/pagination";
 export function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [results, setResults] = useState<JobSearchResponse | null>(null);
-  const [organizations, setOrganizations] = useState<string[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationItem[]>([]);
   const [roleKinds, setRoleKinds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

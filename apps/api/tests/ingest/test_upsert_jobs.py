@@ -85,6 +85,35 @@ def test_closed_job_reopens_when_seen(db_session):
     assert job.status == "open"
 
 
+def test_salary_fields_inserted(db_session):
+    now = datetime.now(timezone.utc)
+    src = _make_source_job(salary_min=50000, salary_max=75000, salary_period="yearly")
+    upsert_jobs(db_session, [src], now)
+
+    job = db_session.query(Job).first()
+    assert float(job.salary_min) == 50000
+    assert float(job.salary_max) == 75000
+    assert job.salary_period == "yearly"
+
+
+def test_salary_fields_updated(db_session):
+    now = datetime.now(timezone.utc)
+    src1 = _make_source_job()
+    upsert_jobs(db_session, [src1], now)
+
+    job = db_session.query(Job).first()
+    assert job.salary_min is None
+
+    src2 = _make_source_job(salary_min=60000, salary_max=80000, salary_period="yearly")
+    result = upsert_jobs(db_session, [src2], now)
+    assert result.updated == 1
+
+    db_session.refresh(job)
+    assert float(job.salary_min) == 60000
+    assert float(job.salary_max) == 80000
+    assert job.salary_period == "yearly"
+
+
 def test_hash_based_slug_for_no_job_id(db_session):
     now = datetime.now(timezone.utc)
     src = _make_source_job(source_job_id=None)

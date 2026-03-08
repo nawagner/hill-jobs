@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import type { JobDetail as JobDetailType } from "../lib/api";
-import { getJob, formatDate, formatRoleKind, getEmployerDisplay } from "../lib/api";
+import { getJob, formatDate, formatRoleKind, formatSalary, getEmployerDisplay } from "../lib/api";
 import { StatusBadge } from "../components/status-badge";
 
 export function JobDetail() {
@@ -83,6 +83,12 @@ export function JobDetail() {
             <dd className="mt-1 font-medium text-slate-700">{job.location_text}</dd>
           </div>
         )}
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">Salary</dt>
+          <dd className={`mt-1 font-medium ${job.salary_min != null ? "text-slate-700" : "text-slate-400"}`}>
+            {formatSalary(job)}
+          </dd>
+        </div>
         {job.posted_at && (
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">Posted</dt>

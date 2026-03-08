@@ -3,6 +3,7 @@ import logging
 import httpx
 from bs4 import BeautifulSoup
 
+from app.ingest.salary_parser import parse_salary_from_text
 from app.lib.fetch_html import fetch_page
 from app.schemas.ingest import SourceJob
 
@@ -76,6 +77,13 @@ def _parse_item(item) -> SourceJob | None:
     if grade:
         title = f"{title} ({grade})"
 
+    salary_min = salary_max = salary_period = None
+    parsed_salary = parse_salary_from_text(desc_text)
+    if parsed_salary:
+        salary_min = parsed_salary.min_value
+        salary_max = parsed_salary.max_value
+        salary_period = parsed_salary.period
+
     return SourceJob(
         source_system=SOURCE_SYSTEM,
         source_organization=SOURCE_ORG,
@@ -88,6 +96,9 @@ def _parse_item(item) -> SourceJob | None:
         employment_type=employment_type,
         posted_at=posted_at,
         closing_at=closing_at,
+        salary_min=salary_min,
+        salary_max=salary_max,
+        salary_period=salary_period,
         raw_payload={"source_url": href, "vacancy_id": source_job_id},
     )
 

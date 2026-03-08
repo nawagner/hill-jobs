@@ -122,10 +122,15 @@ def test_list_organizations(test_client, db_session):
     resp = test_client.get("/api/organizations")
     assert resp.status_code == 200
     orgs = resp.json()
-    assert "Library of Congress" in orgs
-    assert "Senate IT" in orgs
+    org_names = [o["name"] for o in orgs]
+    assert "Library of Congress" in org_names
+    assert "Senate IT" in org_names
     # Closed job org should still appear if other open jobs share it
     assert len(orgs) == 3
+    # Each org includes source_system and party
+    for o in orgs:
+        assert "source_system" in o
+        assert "party" in o
 
 
 def test_list_role_kinds(test_client):
