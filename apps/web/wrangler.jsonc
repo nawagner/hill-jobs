@@ -2,6 +2,9 @@
   "name": "leg-branch-jobs-web",
   "compatibility_date": "2024-12-30",
   "main": "src/worker.ts",
+  "build": {
+    "command": "npm run build"
+  },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
