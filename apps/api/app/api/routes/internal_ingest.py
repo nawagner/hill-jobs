@@ -6,7 +6,6 @@ from app.api.deps import verify_internal_token
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.ingest.adapters.aoc_usajobs import AocUsajobsAdapter
-from app.ingest.adapters.csod import HOUSE_CAO_CONFIG, USCP_CONFIG, CsodAdapter
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
 from app.ingest.adapters.loc import LocAdapter
 from app.ingest.adapters.senate import SenateAdapter
@@ -17,10 +16,10 @@ router = APIRouter(prefix="/api/internal")
 
 
 def build_registry(settings: Settings) -> dict[str, SourceAdapter]:
+    # CSOD adapters (house-cao, uscp) require agent-browser and are run
+    # locally via scripts/ingest_csod.py instead of on the server.
     registry: dict[str, SourceAdapter] = {
         "senate-webscribble": SenateAdapter(),
-        "csod-house-cao": CsodAdapter(HOUSE_CAO_CONFIG),
-        "csod-uscp": CsodAdapter(USCP_CONFIG),
         "loc-careers": LocAdapter(),
         "house-dems-resumebank": HouseDemsResumebankAdapter(),
     }
