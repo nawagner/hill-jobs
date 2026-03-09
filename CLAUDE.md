@@ -43,3 +43,28 @@ Public:
 
 Protected (requires `x-internal-token` header):
 - `POST /api/internal/ingest/run`
+
+## Triggering Ingestion
+
+To trigger ingestion manually:
+```bash
+# Get the token (table output truncates long values, always use --json)
+TOKEN=$(railway variables --service beneficial-beauty --json 2>&1 | python3 -c "import sys,json; print(json.load(sys.stdin)['INTERNAL_INGEST_TOKEN'])")
+curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/ingest/run" -H "x-internal-token: $TOKEN"
+```
+
+## Ingestion Sources
+
+| Adapter | Source System | Method | Runs On |
+|---|---|---|---|
+| `HouseDemsResumebankAdapter` | `house-dems-resumebank` | REST API (domewatch.us) | Railway |
+| `SenateAdapter` | `senate-webscribble` | REST API | Railway |
+| `LocAdapter` | `loc-careers` | Web scraping | Railway |
+| `AocUsajobsAdapter` | `aoc-usajobs` | USAJobs API (needs key) | Railway |
+| `CsodAdapter` | `csod-house-cao`, `csod-uscp` | agent-browser | Local only |
+
+## Running Tests
+
+```bash
+cd apps/api && uv run pytest tests/ -v
+```
