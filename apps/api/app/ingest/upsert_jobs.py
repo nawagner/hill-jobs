@@ -144,14 +144,19 @@ def _insert_new(session: Session, src: SourceJob, now: datetime) -> Job:
 def _enrich_salary(src: SourceJob, existing: Job | None) -> None:
     """Try regex then LLM to fill in missing salary data on a SourceJob.
 
-    Skips LLM call if the existing DB row already has salary data.
+    For existing jobs, only tries regex — LLM is skipped since we already
+    attempted extraction on a previous ingestion and the description text
+    is unlikely to have changed to include salary info.
+    For new jobs, tries regex then LLM.
     """
-    # If existing job already has salary, no need to extract again
+    # Existing job already has salary — nothing to do
     if existing and existing.salary_min is not None:
         return
 
     parsed = parse_salary_from_text(src.description_text)
-    if parsed is None:
+    if parsed is None and existing is None:
+        # Only call LLM for new jobs — existing jobs without salary have
+        # already been processed and their descriptions likely don't contain it
         try:
             parsed = extract_salary_with_llm(src.description_text)
         except Exception:

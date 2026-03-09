@@ -10,7 +10,6 @@ then falls back to Gemini Flash Lite via OpenRouter for unstructured text.
 import argparse
 import logging
 import sys
-import time
 
 from dotenv import load_dotenv
 from sqlalchemy import select
@@ -60,8 +59,6 @@ def backfill(dry_run: bool = False) -> None:
                 try:
                     parsed = extract_salary_with_llm(text)
                     source = "llm"
-                    # Brief pause to avoid rate limits
-                    time.sleep(0.5)
                 except Exception:
                     logger.exception("LLM extraction failed for job %s", job.slug)
                     stats["error"] += 1
