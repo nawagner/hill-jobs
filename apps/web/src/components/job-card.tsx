@@ -68,6 +68,25 @@ export function JobCard({ job }: { job: JobListItem }) {
           </span>
         )}
       </div>
+
+      {job.member_committees && job.member_committees.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {job.member_committees.slice(0, 3).map((name) => (
+            <span
+              key={name}
+              className="inline-flex items-center rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[11px] font-body text-amber-700 leading-tight"
+              title={name}
+            >
+              {name.replace(/^(House |Senate )?Committee on /, "")}
+            </span>
+          ))}
+          {job.member_committees.length > 3 && (
+            <span className="text-[11px] text-slate-400 font-body py-0.5">
+              +{job.member_committees.length - 3} more
+            </span>
+          )}
+        </div>
+      )}
     </article>
   );
 }

@@ -16,6 +16,9 @@ def query_jobs(
     posted_since_days: int | None = None,
     posted_before_days: int | None = None,
     salary_min: int | None = None,
+    party: str | None = None,
+    state: str | None = None,
+    committee: str | None = None,
     page: int = 1,
     page_size: int = 20,
 ) -> tuple[list[Job], int]:
@@ -49,6 +52,34 @@ def query_jobs(
             )
         else:
             stmt = stmt.where(Job.salary_min >= salary_min)
+
+    if party:
+        from app.data.member_parties import MEMBER_PARTIES
+        matching = [name for name, p in MEMBER_PARTIES.items() if p == party]
+        if matching:
+            stmt = stmt.where(Job.source_organization.in_(matching))
+        else:
+            stmt = stmt.where(False)
+
+    if state:
+        from app.data.member_states import MEMBER_STATES
+        matching = [name for name, s in MEMBER_STATES.items() if s == state]
+        if matching:
+            stmt = stmt.where(Job.source_organization.in_(matching))
+        else:
+            stmt = stmt.where(False)
+
+    if committee:
+        from app.data.member_committees import COMMITTEES, MEMBER_COMMITTEES
+        committee_ids = {committee}
+        for cid, meta in COMMITTEES.items():
+            if meta.get("parent") == committee:
+                committee_ids.add(cid)
+        matching = [name for name, comms in MEMBER_COMMITTEES.items() if committee_ids & set(comms)]
+        if matching:
+            stmt = stmt.where(Job.source_organization.in_(matching))
+        else:
+            stmt = stmt.where(False)
 
     if q:
         dialect = session.bind.dialect.name if session.bind else "sqlite"

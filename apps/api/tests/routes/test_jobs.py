@@ -209,3 +209,142 @@ def test_list_role_kinds(test_client):
     assert resp.status_code == 200
     data = resp.json()
     assert data == ["policy", "communications", "legal", "operations", "technology", "security"]
+
+
+# --- Party / State / Committee filter tests ---
+
+
+def _seed_member_jobs(db_session):
+    """Seed jobs from actual member names that exist in lookup dicts."""
+    now = datetime.now(timezone.utc)
+    jobs = [
+        Job(
+            slug="schiff-la",
+            title="Legislative Assistant",
+            source_organization="Senator Adam B. Schiff",
+            source_system="senate-webscribble",
+            source_job_id="401",
+            source_url="https://example.com/401",
+            status="open",
+            role_kind="policy",
+            description_html="<p>LA role</p>",
+            description_text="LA role",
+            posted_at=now,
+        ),
+        Job(
+            slug="collins-la",
+            title="Staff Assistant",
+            source_organization="Senator Susan M. Collins",
+            source_system="senate-webscribble",
+            source_job_id="402",
+            source_url="https://example.com/402",
+            status="open",
+            role_kind="operations",
+            description_html="<p>SA role</p>",
+            description_text="SA role",
+            posted_at=now,
+        ),
+        Job(
+            slug="aoc-comms",
+            title="Communications Director",
+            source_organization="Rep. Alexandria Ocasio-Cortez",
+            source_system="house-dems-resumebank",
+            source_job_id="403",
+            source_url="https://example.com/403",
+            status="open",
+            role_kind="communications",
+            description_html="<p>Comms role</p>",
+            description_text="Comms role",
+            posted_at=now,
+        ),
+        Job(
+            slug="loc-job",
+            title="Archivist",
+            source_organization="Library of Congress",
+            source_system="loc-careers",
+            source_job_id="404",
+            source_url="https://example.com/404",
+            status="open",
+            role_kind="operations",
+            description_html="<p>Archive</p>",
+            description_text="Archive",
+            posted_at=now,
+        ),
+    ]
+    for j in jobs:
+        db_session.add(j)
+    db_session.commit()
+
+
+def test_filter_by_party_democrat(test_client, db_session):
+    _seed_member_jobs(db_session)
+    resp = test_client.get("/api/jobs", params={"party": "D"})
+    data = resp.json()
+    slugs = {item["slug"] for item in data["items"]}
+    assert "schiff-la" in slugs
+    assert "aoc-comms" in slugs
+    assert "collins-la" not in slugs  # Republican
+    assert "loc-job" not in slugs  # Not a member
+
+
+def test_filter_by_party_republican(test_client, db_session):
+    _seed_member_jobs(db_session)
+    resp = test_client.get("/api/jobs", params={"party": "R"})
+    data = resp.json()
+    slugs = {item["slug"] for item in data["items"]}
+    assert "collins-la" in slugs
+    assert "schiff-la" not in slugs
+    assert "aoc-comms" not in slugs
+
+
+def test_filter_by_state(test_client, db_session):
+    _seed_member_jobs(db_session)
+    # Schiff and AOC are CA and NY respectively
+    resp = test_client.get("/api/jobs", params={"state": "CA"})
+    data = resp.json()
+    slugs = {item["slug"] for item in data["items"]}
+    assert "schiff-la" in slugs
+    assert "collins-la" not in slugs  # ME
+    assert "aoc-comms" not in slugs  # NY
+
+
+def test_filter_by_state_excludes_institutional(test_client, db_session):
+    _seed_member_jobs(db_session)
+    resp = test_client.get("/api/jobs", params={"state": "DC"})
+    data = resp.json()
+    # No members represent DC in our test data
+    assert data["total"] == 0
+
+
+def test_combined_party_and_state(test_client, db_session):
+    _seed_member_jobs(db_session)
+    # Democrat + California = only Schiff
+    resp = test_client.get("/api/jobs", params={"party": "D", "state": "CA"})
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["slug"] == "schiff-la"
+
+
+def test_list_states_endpoint(test_client):
+    resp = test_client.get("/api/states")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) > 0
+    # Each item has code and name
+    assert all("code" in s and "name" in s for s in data)
+    # California should be in there
+    codes = [s["code"] for s in data]
+    assert "CA" in codes
+
+
+def test_list_committees_endpoint(test_client):
+    resp = test_client.get("/api/committees")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) > 0
+    # Each item has id, name, chamber, subcommittees
+    for c in data:
+        assert "id" in c
+        assert "name" in c
+        assert "chamber" in c
+        assert "subcommittees" in c
