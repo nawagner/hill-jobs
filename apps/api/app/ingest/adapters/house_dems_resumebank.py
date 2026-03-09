@@ -87,6 +87,11 @@ def _extract_org(item: dict) -> str:
             return f"Rep. {parts[1]} {parts[0]}"
         return f"Rep. {name_part}"
 
+    # "Office of Congresswoman/Congressman First Last" → "Rep. First Last"
+    for prefix in ("Office of Congresswoman ", "Office of Congressman "):
+        if text.startswith(prefix):
+            return f"Rep. {text[len(prefix):]}"
+
     return text
 
 

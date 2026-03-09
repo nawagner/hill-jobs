@@ -24,7 +24,7 @@ def test_parse_jobs():
     assert jobs[0].source_organization == "Rep. Emanuel Cleaver"
     assert jobs[1].source_organization == "Rep. Christian D. Menefee"
     assert jobs[2].source_organization == "Rep. Pramila Jayapal"
-    assert jobs[3].source_organization == "Office of Congresswoman Debbie Dingell"
+    assert jobs[3].source_organization == "Rep. Debbie Dingell"
 
 
 def test_field_mapping():
