@@ -13,6 +13,7 @@ export interface JobListItem {
   salary_period: string | null;
   posted_at: string | null;
   closing_at: string | null;
+  member_committees: string[] | null;
 }
 
 export interface JobDetail extends JobListItem {
@@ -32,6 +33,9 @@ export interface SearchParams {
   q?: string;
   role_kind?: string;
   organization?: string;
+  party?: string;
+  state?: string;
+  committee?: string;
   posted_since_days?: number;
   posted_before_days?: number;
   salary_min?: number;
@@ -43,6 +47,9 @@ export async function searchJobs(params: SearchParams): Promise<JobSearchRespons
   if (params.q) query.set("q", params.q);
   if (params.role_kind) query.set("role_kind", params.role_kind);
   if (params.organization) query.set("organization", params.organization);
+  if (params.party) query.set("party", params.party);
+  if (params.state) query.set("state", params.state);
+  if (params.committee) query.set("committee", params.committee);
   if (params.posted_since_days) query.set("posted_since_days", String(params.posted_since_days));
   if (params.posted_before_days) query.set("posted_before_days", String(params.posted_before_days));
   if (params.salary_min != null) query.set("salary_min", String(params.salary_min));
@@ -63,6 +70,20 @@ export interface OrganizationItem {
   name: string;
   source_system: string;
   party: string | null;
+  state: string | null;
+  committees: string[] | null;
+}
+
+export interface StateItem {
+  code: string;
+  name: string;
+}
+
+export interface CommitteeItem {
+  id: string;
+  name: string;
+  chamber: string;
+  subcommittees: CommitteeItem[];
 }
 
 export async function getOrganizations(): Promise<OrganizationItem[]> {
@@ -74,6 +95,18 @@ export async function getOrganizations(): Promise<OrganizationItem[]> {
 export async function getRoleKinds(): Promise<string[]> {
   const res = await fetch("/api/role-kinds");
   if (!res.ok) throw new Error(`Failed to load role kinds: ${res.status}`);
+  return res.json();
+}
+
+export async function getStates(): Promise<StateItem[]> {
+  const res = await fetch("/api/states");
+  if (!res.ok) throw new Error(`Failed to load states: ${res.status}`);
+  return res.json();
+}
+
+export async function getCommittees(): Promise<CommitteeItem[]> {
+  const res = await fetch("/api/committees");
+  if (!res.ok) throw new Error(`Failed to load committees: ${res.status}`);
   return res.json();
 }
 

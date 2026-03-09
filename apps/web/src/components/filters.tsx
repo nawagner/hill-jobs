@@ -1,16 +1,24 @@
 import { useMemo } from "react";
 import { formatRoleKind } from "../lib/api";
-import type { OrganizationItem } from "../lib/api";
+import type { OrganizationItem, StateItem, CommitteeItem } from "../lib/api";
 
 interface FiltersProps {
   roleKinds: string[];
   organizations: OrganizationItem[];
+  states: StateItem[];
+  committees: CommitteeItem[];
   selectedRoleKind: string;
   selectedOrganization: string;
+  selectedParty: string;
+  selectedState: string;
+  selectedCommittee: string;
   selectedFreshness: string;
   selectedSalary: string;
   onRoleKindChange: (value: string) => void;
   onOrganizationChange: (value: string) => void;
+  onPartyChange: (value: string) => void;
+  onStateChange: (value: string) => void;
+  onCommitteeChange: (value: string) => void;
   onFreshnessChange: (value: string) => void;
   onSalaryChange: (value: string) => void;
 }
@@ -54,12 +62,20 @@ function stripPartySuffix(name: string): string {
 export function Filters({
   roleKinds,
   organizations,
+  states,
+  committees,
   selectedRoleKind,
   selectedOrganization,
+  selectedParty,
+  selectedState,
+  selectedCommittee,
   selectedFreshness,
   selectedSalary,
   onRoleKindChange,
   onOrganizationChange,
+  onPartyChange,
+  onStateChange,
+  onCommitteeChange,
   onFreshnessChange,
   onSalaryChange,
 }: FiltersProps) {
@@ -82,6 +98,16 @@ export function Filters({
 
     return { officeGroups: grouped, members: mems };
   }, [organizations]);
+
+  const { senateCommittees, houseCommittees } = useMemo(() => {
+    const senate: CommitteeItem[] = [];
+    const house: CommitteeItem[] = [];
+    for (const c of committees) {
+      if (c.chamber === "senate") senate.push(c);
+      else if (c.chamber === "house") house.push(c);
+    }
+    return { senateCommittees: senate, houseCommittees: house };
+  }, [committees]);
 
   const isMemberSelected =
     selectedOrganization.startsWith("Senator ") ||
@@ -150,6 +176,73 @@ export function Filters({
           })}
         </select>
       )}
+
+      <select
+        aria-label="Party"
+        value={selectedParty}
+        onChange={(e) => onPartyChange(e.target.value)}
+        className={selectClasses}
+      >
+        <option value="">All parties</option>
+        <option value="D">Democrat</option>
+        <option value="R">Republican</option>
+        <option value="I">Independent</option>
+      </select>
+
+      <select
+        aria-label="State"
+        value={selectedState}
+        onChange={(e) => onStateChange(e.target.value)}
+        className={selectClasses}
+      >
+        <option value="">All states</option>
+        {states.map((s) => (
+          <option key={s.code} value={s.code}>
+            {s.name}
+          </option>
+        ))}
+      </select>
+
+      <select
+        aria-label="Committee"
+        value={selectedCommittee}
+        onChange={(e) => onCommitteeChange(e.target.value)}
+        className={selectClasses}
+      >
+        <option value="">All committees</option>
+        {senateCommittees.length > 0 && (
+          <optgroup label="Senate">
+            {senateCommittees.map((c) => (
+              <>
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+                {c.subcommittees.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {"  \u2014 " + s.name}
+                  </option>
+                ))}
+              </>
+            ))}
+          </optgroup>
+        )}
+        {houseCommittees.length > 0 && (
+          <optgroup label="House">
+            {houseCommittees.map((c) => (
+              <>
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+                {c.subcommittees.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {"  \u2014 " + s.name}
+                  </option>
+                ))}
+              </>
+            ))}
+          </optgroup>
+        )}
+      </select>
 
       <select
         aria-label="Posted within"

@@ -1,4 +1,5 @@
 import logging
+import re
 
 import httpx
 from bs4 import BeautifulSoup
@@ -13,13 +14,24 @@ LISTING_URL = "https://www.loc.gov/careers/?all=true"
 SOURCE_SYSTEM = "loc-careers"
 SOURCE_ORG = "Library of Congress"
 
+_MONEY_RE = re.compile(r"\$[\d,]+(?:\.\d+)?")
+_PERIOD_RE = re.compile(r"per\s+(year|hour|annum)", re.IGNORECASE)
+
 
 class LocAdapter:
     source_system = SOURCE_SYSTEM
 
     def fetch_jobs(self, client: httpx.Client) -> list[SourceJob]:
         html = fetch_page(client, LISTING_URL)
-        return parse_listing(html)
+        jobs = parse_listing(html)
+        for job in jobs:
+            try:
+                _enrich_from_detail(client, job)
+            except Exception:
+                logger.exception(
+                    "Failed to fetch LOC detail page for %s", job.source_job_id
+                )
+        return jobs
 
 
 def parse_listing(html: str) -> list[SourceJob]:
@@ -112,3 +124,45 @@ def _parse_date(text: str):
         except ValueError:
             continue
     return None
+
+
+def _enrich_from_detail(client: httpx.Client, job: SourceJob) -> None:
+    """Fetch a LOC detail page and enrich the job with salary and description."""
+    if not job.source_url:
+        return
+
+    html = fetch_page(client, job.source_url)
+    soup = BeautifulSoup(html, "lxml")
+
+    # Extract salary from <li><strong>Minimum Salary:</strong> $X per year</li>
+    for li in soup.find_all("li"):
+        strong = li.find("strong")
+        if not strong:
+            continue
+        label = strong.get_text(strip=True).lower()
+        text = li.get_text(strip=True)
+
+        if "minimum salary" in label:
+            m = _MONEY_RE.search(text)
+            if m:
+                job.salary_min = float(m.group().replace("$", "").replace(",", ""))
+            p = _PERIOD_RE.search(text)
+            if p:
+                word = p.group(1).lower()
+                job.salary_period = "yearly" if word in ("year", "annum") else "hourly"
+
+        elif "maximum salary" in label:
+            m = _MONEY_RE.search(text)
+            if m:
+                job.salary_max = float(m.group().replace("$", "").replace(",", ""))
+
+    # Extract richer description from detail page
+    desc_div = soup.select_one("div.body-text") or soup.select_one("div#content")
+    if desc_div:
+        paragraphs = desc_div.find_all("p")
+        if paragraphs:
+            desc_html = "\n".join(str(p) for p in paragraphs)
+            desc_text = "\n\n".join(p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True))
+            if len(desc_text) > len(job.description_text):
+                job.description_html = desc_html
+                job.description_text = desc_text

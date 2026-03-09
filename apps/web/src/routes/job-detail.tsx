@@ -103,6 +103,24 @@ export function JobDetail() {
         )}
       </dl>
 
+      {job.member_committees && job.member_committees.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 font-body">
+            Member&apos;s Committee Assignments
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {job.member_committees.map((name) => (
+              <span
+                key={name}
+                className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-body text-amber-700"
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Description */}
       <div
         className="prose prose-slate max-w-none font-body prose-headings:font-display prose-headings:text-navy-900 prose-a:text-navy-600 prose-a:no-underline hover:prose-a:underline"

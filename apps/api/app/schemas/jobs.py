@@ -18,6 +18,7 @@ class JobListItem(BaseModel):
     salary_period: str | None = None
     posted_at: datetime | None = None
     closing_at: datetime | None = None
+    member_committees: list[str] | None = None
 
 
 class JobDetail(JobListItem):
@@ -30,6 +31,20 @@ class OrganizationItem(BaseModel):
     name: str
     source_system: str
     party: str | None = None
+    state: str | None = None
+    committees: list[str] | None = None
+
+
+class StateItem(BaseModel):
+    code: str
+    name: str
+
+
+class CommitteeItem(BaseModel):
+    id: str
+    name: str
+    chamber: str
+    subcommittees: list["CommitteeItem"] = []
 
 
 class JobSearchResponse(BaseModel):
