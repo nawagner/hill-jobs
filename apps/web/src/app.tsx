@@ -22,10 +22,38 @@ function Layout() {
         </div>
       </header>
       <Outlet />
-      <footer className="border-t border-slate-200 bg-white py-8 mt-auto">
-        <div className="mx-auto max-w-5xl px-6 text-center text-xs text-slate-400 font-body">
-          <p>Hill Jobs aggregates public job postings from legislative branch employers.</p>
-          <p className="mt-1">Data refreshed daily. Not an official government website.</p>
+      <footer className="bg-navy-950 py-8 mt-auto">
+        <div className="mx-auto max-w-5xl px-6 text-center text-xs text-navy-300 font-body">
+          <p>
+            A project by{" "}
+            <a
+              href="https://www.learningjourneyai.com/"
+              className="text-gold-400 hover:text-gold-300 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Learning Journey AI
+            </a>
+          </p>
+          <p className="mt-2 flex items-center justify-center gap-2">
+            <span>Hill Jobs aggregates public job postings from legislative branch employers.</span>
+            <span className="text-navy-600">·</span>
+            <a
+              href="https://github.com/nawagner/hill-jobs"
+              className="text-gold-400 hover:text-gold-300 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub
+            </a>
+            <span className="text-navy-600">·</span>
+            <a
+              href="mailto:nwagner@learningjourneyai.com"
+              className="text-gold-400 hover:text-gold-300 transition-colors"
+            >
+              Contact us
+            </a>
+          </p>
         </div>
       </footer>
     </div>

@@ -34,6 +34,7 @@ export interface SearchParams {
   organization?: string;
   posted_since_days?: number;
   posted_before_days?: number;
+  salary_min?: number;
   page?: number;
 }
 
@@ -44,6 +45,7 @@ export async function searchJobs(params: SearchParams): Promise<JobSearchRespons
   if (params.organization) query.set("organization", params.organization);
   if (params.posted_since_days) query.set("posted_since_days", String(params.posted_since_days));
   if (params.posted_before_days) query.set("posted_before_days", String(params.posted_before_days));
+  if (params.salary_min != null) query.set("salary_min", String(params.salary_min));
   if (params.page && params.page > 1) query.set("page", String(params.page));
 
   const res = await fetch(`/api/jobs?${query.toString()}`);

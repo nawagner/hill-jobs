@@ -19,6 +19,7 @@ export function Home() {
   const roleKind = searchParams.get("role_kind") || "";
   const organization = searchParams.get("organization") || "";
   const freshness = searchParams.get("freshness") || searchParams.get("posted_since_days") || "";
+  const salary = searchParams.get("salary") || "";
   const page = Number(searchParams.get("page")) || 1;
 
   const updateParam = useCallback(
@@ -55,12 +56,13 @@ export function Home() {
       organization: organization || undefined,
       posted_since_days: freshness && freshness !== "older_30" ? Number(freshness) : undefined,
       posted_before_days: freshness === "older_30" ? 30 : undefined,
+      salary_min: salary !== "" ? Number(salary) : undefined,
       page,
     })
       .then(setResults)
       .catch(() => setError("Unable to load jobs. Please try again."))
       .finally(() => setLoading(false));
-  }, [q, roleKind, organization, freshness, page]);
+  }, [q, roleKind, organization, freshness, salary, page]);
 
   return (
     <>
@@ -101,9 +103,11 @@ export function Home() {
             selectedRoleKind={roleKind}
             selectedOrganization={organization}
             selectedFreshness={freshness}
+            selectedSalary={salary}
             onRoleKindChange={(v) => updateParam("role_kind", v)}
             onOrganizationChange={(v) => updateParam("organization", v)}
             onFreshnessChange={(v) => updateParam("freshness", v)}
+            onSalaryChange={(v) => updateParam("salary", v)}
           />
           {results && !loading && (
             <p className="text-sm text-slate-500 font-body whitespace-nowrap">
