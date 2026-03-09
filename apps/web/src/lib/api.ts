@@ -33,6 +33,7 @@ export interface SearchParams {
   role_kind?: string;
   organization?: string;
   posted_since_days?: number;
+  posted_before_days?: number;
   page?: number;
 }
 
@@ -42,6 +43,7 @@ export async function searchJobs(params: SearchParams): Promise<JobSearchRespons
   if (params.role_kind) query.set("role_kind", params.role_kind);
   if (params.organization) query.set("organization", params.organization);
   if (params.posted_since_days) query.set("posted_since_days", String(params.posted_since_days));
+  if (params.posted_before_days) query.set("posted_before_days", String(params.posted_before_days));
   if (params.page && params.page > 1) query.set("page", String(params.page));
 
   const res = await fetch(`/api/jobs?${query.toString()}`);
