@@ -59,7 +59,7 @@ export function Filters({
     };
 
     for (const org of organizations) {
-      if (org.name.startsWith("Senator ") || org.name === "Confidential") {
+      if (org.name.startsWith("Senator ") || org.name.startsWith("Rep. ") || org.name === "Confidential") {
         mems.push(org);
       } else {
         const chamber = SOURCE_TO_CHAMBER[org.source_system] || "legislative";
@@ -72,6 +72,7 @@ export function Filters({
 
   const isMemberSelected =
     selectedOrganization.startsWith("Senator ") ||
+    selectedOrganization.startsWith("Rep. ") ||
     selectedOrganization === "Confidential";
 
   const selectClasses =
@@ -126,7 +127,7 @@ export function Filters({
         >
           <option value="">All members</option>
           {members.map((mem) => {
-            const displayName = mem.name.replace(/^Senator /, "");
+            const displayName = mem.name.replace(/^(Senator |Rep\. )/, "");
             const partyLabel = mem.party ? ` (${mem.party})` : "";
             return (
               <option key={mem.name} value={mem.name}>

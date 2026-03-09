@@ -45,9 +45,11 @@ def _parse_job(item: dict) -> SourceJob:
 
     salary_min, salary_max, salary_period = _extract_salary(item)
 
+    org = _extract_org(item)
+
     return SourceJob(
         source_system=SOURCE_SYSTEM,
-        source_organization=SOURCE_ORG,
+        source_organization=org,
         source_job_id=str(item["id"]),
         source_url=f"{BASE_JOB_URL}{item['id']}",
         title=item["title"],
@@ -62,6 +64,30 @@ def _parse_job(item: dict) -> SourceJob:
         salary_period=salary_period,
         raw_payload=item,
     )
+
+
+def _extract_org(item: dict) -> str:
+    """Extract the hiring organization name from the job payload.
+
+    The API returns names like "Mullin, Kevin - Rep." for individual members
+    and plain names like "House Rules Committee" for committees/caucuses.
+    Member names are converted to "Rep. First Last" format.
+    """
+    ho = item.get("hiringOrganization", {})
+    name_obj = ho.get("name", {})
+    text = name_obj.get("text", "") if isinstance(name_obj, dict) else str(name_obj)
+    if not text:
+        return SOURCE_ORG
+
+    # "Last, First - Rep." → "Rep. First Last"
+    if text.endswith(" - Rep."):
+        name_part = text[: -len(" - Rep.")]
+        parts = name_part.split(", ", 1)
+        if len(parts) == 2:
+            return f"Rep. {parts[1]} {parts[0]}"
+        return f"Rep. {name_part}"
+
+    return text
 
 
 def _extract_salary(item: dict) -> tuple[float | None, float | None, str | None]:

@@ -90,6 +90,7 @@ const EMPLOYER_NAMES: Record<string, string> = {
   "loc-careers": "Library of Congress",
   "aoc-usajobs": "Architect of the Capitol",
   "house-bulletin": "U.S. House of Representatives",
+  "house-dems-resumebank": "U.S. House of Representatives",
 };
 
 export function formatSalary(job: Pick<JobListItem, "salary_min" | "salary_max" | "salary_period">): string {
