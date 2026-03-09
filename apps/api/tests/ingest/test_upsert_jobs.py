@@ -114,6 +114,19 @@ def test_salary_fields_updated(db_session):
     assert job.salary_period == "yearly"
 
 
+def test_source_organization_updated(db_session):
+    now = datetime.now(timezone.utc)
+    src1 = _make_source_job(source_organization="House Democrats")
+    upsert_jobs(db_session, [src1], now)
+
+    src2 = _make_source_job(source_organization="Rep. Jane Smith")
+    result = upsert_jobs(db_session, [src2], now)
+    assert result.updated == 1
+
+    job = db_session.query(Job).first()
+    assert job.source_organization == "Rep. Jane Smith"
+
+
 def test_hash_based_slug_for_no_job_id(db_session):
     now = datetime.now(timezone.utc)
     src = _make_source_job(source_job_id=None)
