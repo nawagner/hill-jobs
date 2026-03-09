@@ -8,10 +8,21 @@ interface FiltersProps {
   selectedRoleKind: string;
   selectedOrganization: string;
   selectedFreshness: string;
+  selectedSalary: string;
   onRoleKindChange: (value: string) => void;
   onOrganizationChange: (value: string) => void;
   onFreshnessChange: (value: string) => void;
+  onSalaryChange: (value: string) => void;
 }
+
+const salaryOptions = [
+  { label: "Salary", value: "" },
+  { label: "Has salary listed", value: "0" },
+  { label: "$50,000+", value: "50000" },
+  { label: "$75,000+", value: "75000" },
+  { label: "$100,000+", value: "100000" },
+  { label: "$150,000+", value: "150000" },
+];
 
 const freshnessOptions = [
   { label: "Date posted", value: "" },
@@ -46,9 +57,11 @@ export function Filters({
   selectedRoleKind,
   selectedOrganization,
   selectedFreshness,
+  selectedSalary,
   onRoleKindChange,
   onOrganizationChange,
   onFreshnessChange,
+  onSalaryChange,
 }: FiltersProps) {
   const { officeGroups, members } = useMemo(() => {
     const mems: OrganizationItem[] = [];
@@ -145,6 +158,19 @@ export function Filters({
         className={selectClasses}
       >
         {freshnessOptions.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+
+      <select
+        aria-label="Salary"
+        value={selectedSalary}
+        onChange={(e) => onSalaryChange(e.target.value)}
+        className={selectClasses}
+      >
+        {salaryOptions.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>

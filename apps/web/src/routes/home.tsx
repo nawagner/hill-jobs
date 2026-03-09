@@ -19,6 +19,7 @@ export function Home() {
   const roleKind = searchParams.get("role_kind") || "";
   const organization = searchParams.get("organization") || "";
   const freshness = searchParams.get("freshness") || searchParams.get("posted_since_days") || "";
+  const salary = searchParams.get("salary") || "";
   const page = Number(searchParams.get("page")) || 1;
 
   const updateParam = useCallback(

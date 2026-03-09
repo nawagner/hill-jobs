@@ -15,6 +15,7 @@ def query_jobs(
     status: str | None = None,
     posted_since_days: int | None = None,
     posted_before_days: int | None = None,
+    salary_min: int | None = None,
     page: int = 1,
     page_size: int = 20,
 ) -> tuple[list[Job], int]:
@@ -40,6 +41,14 @@ def query_jobs(
     if posted_before_days is not None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=posted_before_days)
         stmt = stmt.where(Job.posted_at < cutoff)
+
+    if salary_min is not None:
+        if salary_min == 0:
+            stmt = stmt.where(
+                or_(Job.salary_min.isnot(None), Job.salary_max.isnot(None))
+            )
+        else:
+            stmt = stmt.where(Job.salary_min >= salary_min)
 
     if q:
         dialect = session.bind.dialect.name if session.bind else "sqlite"
