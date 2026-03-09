@@ -19,6 +19,7 @@ def list_jobs(
     organization: str | None = None,
     status: str | None = None,
     posted_since_days: int | None = None,
+    posted_before_days: int | None = None,
     page: int = 1,
     db: Session = Depends(get_db),
 ):
@@ -29,6 +30,7 @@ def list_jobs(
         organization=organization,
         status=status,
         posted_since_days=posted_since_days,
+        posted_before_days=posted_before_days,
         page=page,
     )
     return JobSearchResponse(

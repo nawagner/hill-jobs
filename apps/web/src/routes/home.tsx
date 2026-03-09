@@ -18,7 +18,7 @@ export function Home() {
   const q = searchParams.get("q") || "";
   const roleKind = searchParams.get("role_kind") || "";
   const organization = searchParams.get("organization") || "";
-  const freshness = searchParams.get("posted_since_days") || "";
+  const freshness = searchParams.get("freshness") || searchParams.get("posted_since_days") || "";
   const page = Number(searchParams.get("page")) || 1;
 
   const updateParam = useCallback(
@@ -53,7 +53,8 @@ export function Home() {
       q: q || undefined,
       role_kind: roleKind || undefined,
       organization: organization || undefined,
-      posted_since_days: freshness ? Number(freshness) : undefined,
+      posted_since_days: freshness && freshness !== "older_30" ? Number(freshness) : undefined,
+      posted_before_days: freshness === "older_30" ? 30 : undefined,
       page,
     })
       .then(setResults)
@@ -102,7 +103,7 @@ export function Home() {
             selectedFreshness={freshness}
             onRoleKindChange={(v) => updateParam("role_kind", v)}
             onOrganizationChange={(v) => updateParam("organization", v)}
-            onFreshnessChange={(v) => updateParam("posted_since_days", v)}
+            onFreshnessChange={(v) => updateParam("freshness", v)}
           />
           {results && !loading && (
             <p className="text-sm text-slate-500 font-body whitespace-nowrap">

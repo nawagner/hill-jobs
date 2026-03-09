@@ -14,10 +14,10 @@ interface FiltersProps {
 }
 
 const freshnessOptions = [
-  { label: "Any time", value: "" },
+  { label: "Date posted", value: "" },
   { label: "Last 7 days", value: "7" },
   { label: "Last 30 days", value: "30" },
-  { label: "Last 90 days", value: "90" },
+  { label: "Older than 30 days", value: "older_30" },
 ];
 
 const CHAMBER_LABELS: Record<string, string> = {
