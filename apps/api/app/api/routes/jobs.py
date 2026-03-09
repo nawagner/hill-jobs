@@ -3,7 +3,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.categorization.role_kinds import ROLE_KINDS
-from app.data.member_parties import SENATOR_PARTIES
+from app.data.member_parties import MEMBER_PARTIES
 from app.db import get_db
 from app.models.jobs import Job
 from app.schemas.jobs import JobDetail, JobListItem, JobSearchResponse, OrganizationItem
@@ -58,7 +58,10 @@ def list_organizations(db: Session = Depends(get_db)) -> list[OrganizationItem]:
 
     result: list[OrganizationItem] = []
     for name, source_system in rows:
-        party = SENATOR_PARTIES.get(name)
+        party = MEMBER_PARTIES.get(name)
+        # All house-dems-resumebank member offices are Democrats
+        if party is None and source_system == "house-dems-resumebank" and name.startswith("Rep. "):
+            party = "D"
         result.append(OrganizationItem(
             name=name,
             source_system=source_system,
