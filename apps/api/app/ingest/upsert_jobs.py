@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -5,9 +6,13 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.categorization.classify_job import classify_job
+from app.ingest.llm_salary_extractor import extract_salary_with_llm
+from app.ingest.salary_parser import parse_salary_from_text
 from app.models.jobs import Job
 from app.schemas.ingest import SourceJob
 from app.search.slugs import generate_slug
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -27,6 +32,10 @@ def upsert_jobs(
 
     for src in jobs:
         existing = _find_existing(session, src)
+
+        # Enrich salary via regex then LLM if adapter provided none
+        if src.salary_min is None and src.description_text:
+            _enrich_salary(src, existing)
 
         if existing:
             changed = _update_existing(existing, src, now)
@@ -130,3 +139,28 @@ def _insert_new(session: Session, src: SourceJob, now: datetime) -> Job:
     )
     session.add(job)
     return job
+
+
+def _enrich_salary(src: SourceJob, existing: Job | None) -> None:
+    """Try regex then LLM to fill in missing salary data on a SourceJob.
+
+    Skips LLM call if the existing DB row already has salary data.
+    """
+    # If existing job already has salary, no need to extract again
+    if existing and existing.salary_min is not None:
+        return
+
+    parsed = parse_salary_from_text(src.description_text)
+    if parsed is None:
+        try:
+            parsed = extract_salary_with_llm(src.description_text)
+        except Exception:
+            logger.exception("LLM salary extraction failed for %s", src.source_job_id)
+            return
+
+    if parsed is None:
+        return
+
+    src.salary_min = parsed.min_value
+    src.salary_max = parsed.max_value
+    src.salary_period = parsed.period
