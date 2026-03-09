@@ -133,6 +133,77 @@ def test_list_organizations(test_client, db_session):
         assert "party" in o
 
 
+def _seed_jobs_with_salaries(db_session):
+    now = datetime.now(timezone.utc)
+    jobs = [
+        Job(
+            slug="high-salary",
+            title="Senior Advisor",
+            source_organization="Senate IT",
+            source_system="senate-webscribble",
+            source_job_id="301",
+            source_url="https://example.com/301",
+            status="open",
+            role_kind="policy",
+            description_html="<p>Advise</p>",
+            description_text="Advise",
+            posted_at=now,
+            salary_min=120000,
+            salary_max=150000,
+            salary_period="annual",
+        ),
+        Job(
+            slug="mid-salary",
+            title="Analyst",
+            source_organization="Senate IT",
+            source_system="senate-webscribble",
+            source_job_id="302",
+            source_url="https://example.com/302",
+            status="open",
+            role_kind="policy",
+            description_html="<p>Analyze</p>",
+            description_text="Analyze",
+            posted_at=now,
+            salary_min=60000,
+            salary_max=80000,
+            salary_period="annual",
+        ),
+        Job(
+            slug="no-salary",
+            title="Intern",
+            source_organization="Senate IT",
+            source_system="senate-webscribble",
+            source_job_id="303",
+            source_url="https://example.com/303",
+            status="open",
+            role_kind="operations",
+            description_html="<p>Intern</p>",
+            description_text="Intern",
+            posted_at=now,
+        ),
+    ]
+    for j in jobs:
+        db_session.add(j)
+    db_session.commit()
+
+
+def test_salary_filter_has_salary(test_client, db_session):
+    _seed_jobs_with_salaries(db_session)
+    resp = test_client.get("/api/jobs", params={"salary_min": 0})
+    data = resp.json()
+    assert data["total"] == 2
+    slugs = {item["slug"] for item in data["items"]}
+    assert slugs == {"high-salary", "mid-salary"}
+
+
+def test_salary_filter_minimum_threshold(test_client, db_session):
+    _seed_jobs_with_salaries(db_session)
+    resp = test_client.get("/api/jobs", params={"salary_min": 100000})
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["slug"] == "high-salary"
+
+
 def test_list_role_kinds(test_client):
     resp = test_client.get("/api/role-kinds")
     assert resp.status_code == 200

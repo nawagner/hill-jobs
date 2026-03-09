@@ -43,7 +43,10 @@ function mockFetchResponses() {
       return Promise.resolve(new Response(JSON.stringify(mockJobs)));
     }
     if (url.includes("/api/organizations")) {
-      return Promise.resolve(new Response(JSON.stringify(["House CAO", "Office of Sen. Smith"])));
+      return Promise.resolve(new Response(JSON.stringify([
+        { name: "House CAO", source_system: "csod-house-cao", party: null },
+        { name: "Office of Sen. Smith", source_system: "senate-webscribble", party: null },
+      ])));
     }
     if (url.includes("/api/role-kinds")) {
       return Promise.resolve(new Response(JSON.stringify(["policy", "technology"])));
@@ -70,6 +73,7 @@ describe("Home", () => {
       expect(screen.getByLabelText("Role category")).toBeInTheDocument();
       expect(screen.getByLabelText("Organization")).toBeInTheDocument();
       expect(screen.getByLabelText("Posted within")).toBeInTheDocument();
+      expect(screen.getByLabelText("Salary")).toBeInTheDocument();
     });
   });
 
