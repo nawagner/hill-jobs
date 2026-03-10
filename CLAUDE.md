@@ -43,6 +43,7 @@ Public:
 
 Protected (requires `x-internal-token` header):
 - `POST /api/internal/ingest/run`
+- `POST /api/internal/ingest/hvaps?pdf_url=<url>` — HVAPS PDF bulletin ingest
 
 ## Triggering Ingestion
 
@@ -51,6 +52,9 @@ To trigger ingestion manually:
 # Get the token (table output truncates long values, always use --json)
 TOKEN=$(railway variables --service beneficial-beauty --json 2>&1 | python3 -c "import sys,json; print(json.load(sys.stdin)['INTERNAL_INGEST_TOKEN'])")
 curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/ingest/run" -H "x-internal-token: $TOKEN"
+
+# Ingest HVAPS PDF (paste the PDF URL from the weekly email)
+curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/ingest/hvaps?pdf_url=<PASTE_PDF_URL_HERE>" -H "x-internal-token: $TOKEN"
 ```
 
 ## Ingestion Sources
@@ -62,6 +66,7 @@ curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/i
 | `LocAdapter` | `loc-careers` | Web scraping | Railway |
 | `AocUsajobsAdapter` | `aoc-usajobs` | USAJobs API (needs key) | Railway |
 | `CsodAdapter` | `csod-house-cao`, `csod-uscp` | agent-browser | Local only |
+| HVAPS endpoint | `house-hvaps` | PDF parsing (manual URL trigger) | Railway |
 
 ## Running Tests
 

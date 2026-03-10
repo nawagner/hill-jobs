@@ -19,6 +19,7 @@ class SyncRunResult:
     jobs_found: int = 0
     created: int = 0
     updated: int = 0
+    skipped: int = 0
     closed: int = 0
     error: str | None = None
 
@@ -60,12 +61,13 @@ def run_all_sources(
                 jobs_found=len(source_jobs),
                 created=upsert_result.created,
                 updated=upsert_result.updated,
+                skipped=upsert_result.skipped,
                 closed=closed,
             )
             logger.info(
-                "Source %s: found=%d created=%d updated=%d closed=%d",
+                "Source %s: found=%d created=%d updated=%d skipped=%d closed=%d",
                 name, len(source_jobs), upsert_result.created,
-                upsert_result.updated, closed,
+                upsert_result.updated, upsert_result.skipped, closed,
             )
         except Exception as e:
             logger.exception("Source %s failed: %s", name, e)
