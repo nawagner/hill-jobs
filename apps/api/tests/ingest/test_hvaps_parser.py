@@ -1,6 +1,7 @@
 from app.ingest.hvaps_pdf_parser import (
     _extract_organization,
     _extract_title,
+    _extract_title_from_heading,
     _extract_location,
     _extract_salary_text,
     _normalize_org_name,
@@ -58,7 +59,49 @@ def test_normalize_committee():
     assert _normalize_org_name("House Rules Committee") == "House Rules Committee"
 
 
-# --- Title extraction ---
+# --- Heading title extraction (standalone title line after MEM ID) ---
+
+def test_heading_title_with_member_dash():
+    """Format: 'Title – Member Name (XX-00)'"""
+    chunk = "MEM-068-26\nDigital Director | Press Secretary - Congresswoman Nanette Barragán (CA-44)\nLocation: Washington, DC"
+    assert _extract_title_from_heading(chunk) == "Digital Director | Press Secretary"
+
+
+def test_heading_title_with_rep_dash():
+    """Format: 'Title – Rep. Name (XX-00)'"""
+    chunk = "MEM-053-26\nCommunications Director – Rep. Jimmy Panetta (CA-19)\nUnited States Representative..."
+    assert _extract_title_from_heading(chunk) == "Communications Director"
+
+
+def test_heading_title_with_scheduler():
+    chunk = "MEM-067-26\nScheduler|Executive Assistant – Rep. Nanette Barragán (CA-44)\nLocation: Washington, DC"
+    assert _extract_title_from_heading(chunk) == "Scheduler|Executive Assistant"
+
+
+def test_heading_title_standalone_short():
+    """Format: short title with no member name"""
+    chunk = "MEM-060-26\nDigital Manager + Press Secretary\nU.S. House of Representatives"
+    assert _extract_title_from_heading(chunk) == "Digital Manager + Press Secretary"
+
+
+def test_heading_title_anonymous_member():
+    """Format: 'Moderate House Democrat - Legislative Director'"""
+    chunk = "MEM-039-26\nModerate House Democrat - Legislative Director\nModerate House Democrat seeks..."
+    assert _extract_title_from_heading(chunk) == "Moderate House Democrat - Legislative Director"
+
+
+def test_heading_skips_prose_intro():
+    """Lines starting with member intro should be skipped (handled by _extract_title)"""
+    chunk = "MEM-072-26\nCongresswoman Joyce Beatty (OH-03) seeks an innovative Communications Director"
+    assert _extract_title_from_heading(chunk) is None
+
+
+def test_heading_skips_office_intro():
+    chunk = "MEM-064-26\nThe Office of Congressman Steven Horsford seeks a Director of Communications"
+    assert _extract_title_from_heading(chunk) is None
+
+
+# --- Sentence-based title extraction ---
 
 def test_extract_title_seeks():
     chunk = "The Office of Congresswoman Joyce Beatty (OH-03) seeks an innovative Communications Director who can design, produce, and turn around products."
@@ -165,6 +208,36 @@ Some office seeks a Staff Assistant."""
     assert result is not None
     assert result["source_job_id"] == "MEM-099-26"
     assert result["title"] == "Staff Assistant"
+
+
+def test_parse_listing_heading_format():
+    """Listings where title is a standalone heading line."""
+    chunk = """MEM-068-26
+Digital Director | Press Secretary - Congresswoman Nanette Barragán (CA-44)
+Location: Washington, DC
+Salary Range: $60-70,000 based on experience
+Congresswoman Nanette Barragán (CA-44) is seeking a Press Secretary|Digital Director
+to join our communications team."""
+
+    result = _parse_listing(chunk)
+    assert result is not None
+    assert result["source_job_id"] == "MEM-068-26"
+    assert result["title"] == "Digital Director | Press Secretary"
+    assert result["organization"] == "Rep. Nanette Barragán"
+    assert result["location"] == "Washington, DC"
+
+
+def test_parse_listing_anonymous_member():
+    """Listings with anonymous member (no Congresswoman/man/Rep pattern)."""
+    chunk = """MEM-039-26
+Moderate House Democrat - Legislative Director
+Moderate House Democrat seeks qualified candidates for the position of Legislative
+Director for their Washington, D.C. office."""
+
+    result = _parse_listing(chunk)
+    assert result is not None
+    assert result["source_job_id"] == "MEM-039-26"
+    assert result["title"] == "Moderate House Democrat - Legislative Director"
 
 
 def test_parse_listing_no_mem_id():

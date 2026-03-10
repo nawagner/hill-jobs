@@ -52,6 +52,28 @@ _MEMBER_PATTERNS = [
 # Title patterns - the job title typically appears as a bold line
 # right after or near the MEM ID, often with the member name
 _TITLE_PATTERNS = [
+    # Try specific structural patterns first (higher confidence)
+    # "... to serve as a Digital Manager ..."
+    re.compile(
+        r"to\s+serve\s+as\s+(?:a|an)\s+(?:full[- ]time\s+|part[- ]time\s+)?(.+?)(?:\s+to\s|\s+for\s|\s+in\s|\.\s|\s*$)",
+        re.IGNORECASE,
+    ),
+    # "... to fill the Chief of Staff role ..."
+    re.compile(
+        r"(?:to\s+fill|fill)\s+the\s+(.+?)\s+(?:role|position)",
+        re.IGNORECASE,
+    ),
+    # "... to hire a Chief of Staff ..."
+    re.compile(
+        r"to\s+hire\s+(?:a|an)\s+(.+?)(?:\s+to\s|\s+for\s|\s+in\s|\.\s|\s*$)",
+        re.IGNORECASE,
+    ),
+    # "... seeks qualified candidates for the position of Legislative Director"
+    re.compile(
+        r"(?:position|role)\s+of\s+(?:a\s+)?(.+?)(?:\s+to\s|\s+for\s|\s+in\s|\.\s|\s*$)",
+        re.IGNORECASE,
+    ),
+    # Then try general "seeks/hiring/seeking" patterns
     # "... seeks a Communications Director ..."
     re.compile(
         r"seeks\s+(?:a|an)\s+(.+?)(?:\s+to\s|\s+for\s|\s+in\s|\s+who\s|\.\s|\s*$)",
@@ -64,12 +86,7 @@ _TITLE_PATTERNS = [
     ),
     # "... is seeking a Press Secretary ..."
     re.compile(
-        r"is\s+seeking\s+(?:a|an)\s+(?:motivated\s+|detail[- ]oriented\s+)?(.+?)(?:\s+to\s|\s+for\s|\s+in\s|\.\s|\s*$)",
-        re.IGNORECASE,
-    ),
-    # "... seeks qualified candidates for the position of Legislative Director"
-    re.compile(
-        r"(?:for|of)\s+(?:the\s+)?(?:position\s+of\s+)?(?:a\s+)?(.+?)(?:\s+to\s|\s+for\s|\s+in\s|\.\s|\s*$)",
+        r"is\s+seeking\s+(?:a|an)\s+(.+?)(?:\s+to\s|\s+for\s|\s+in\s|\.\s|\s*$)",
         re.IGNORECASE,
     ),
 ]
@@ -135,10 +152,11 @@ def _parse_listing(chunk: str) -> dict | None:
     # Extract organization (member/office name)
     organization = _extract_organization(chunk)
 
-    # Extract title
-    title = _extract_title(chunk)
+    # Extract title — try heading line first, then sentence patterns, then fallback
+    title = _extract_title_from_heading(chunk)
     if not title:
-        # Fallback: use the first non-MEM line that looks like a title
+        title = _extract_title(chunk)
+    if not title:
         title = _extract_title_from_lines(chunk, source_job_id)
 
     # Extract location
@@ -180,10 +198,60 @@ def _normalize_org_name(name: str) -> str:
     return name
 
 
+# Pattern for standalone heading lines: "Title – Member Name (XX-00)" or just "Title"
+# These appear on line 2 right after the MEM ID
+_HEADING_TITLE_PATTERN = re.compile(
+    r"^(.+?)\s*(?:–|—|-)\s*(?:Rep\.|Congresswo?man|U\.S\.\s)", re.IGNORECASE
+)
+
+
+def _extract_title_from_heading(chunk: str) -> str | None:
+    """Extract title from a standalone heading line right after the MEM ID.
+
+    Many HVAPS listings have the format:
+        MEM-068-26
+        Digital Director | Press Secretary - Congresswoman Nanette Barragán (CA-44)
+    or:
+        MEM-039-26
+        Moderate House Democrat - Legislative Director
+    """
+    lines = chunk.split("\n")
+    if len(lines) < 2:
+        return None
+
+    line2 = lines[1].strip()
+
+    # Skip lines that start with a member/office intro (these embed the title
+    # in prose, handled by _extract_title instead)
+    if re.match(
+        r"(?:The\s+)?(?:Office\s+of\s+)?(?:Congress(?:wo)?man|Rep(?:resentative)?\.?\s|United\s+States)",
+        line2,
+        re.IGNORECASE,
+    ):
+        return None
+
+    # Format: "Title – Member Name (XX-00)" or "Title - Rep. Name (XX-00)"
+    m = _HEADING_TITLE_PATTERN.match(line2)
+    if m:
+        title = m.group(1).strip().rstrip(".,;:|")
+        if 3 <= len(title) <= 100:
+            return title
+
+    # Format: short standalone title line (no member name, e.g., "Digital Manager + Press Secretary")
+    # Must be relatively short and not look like a sentence
+    if len(line2) <= 60 and not line2.endswith((".", ";")) and not re.search(r"\b(?:seeks|hiring|seeking)\b", line2, re.IGNORECASE):
+        return line2
+
+    return None
+
+
 def _extract_title(chunk: str) -> str | None:
     """Try to extract the job title from the listing text using patterns."""
+    # Join lines in the first ~1000 chars to handle titles that wrap across lines
+    lines = chunk[:1500].split("\n")
+    joined = " ".join(line.strip() for line in lines[:15] if line.strip())
     for pattern in _TITLE_PATTERNS:
-        m = pattern.search(chunk[:1000])  # Only search first ~1000 chars
+        m = pattern.search(joined[:1000])
         if m:
             title = m.group(1).strip()
             # Clean up common trailing artifacts
