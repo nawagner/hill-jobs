@@ -11,7 +11,7 @@ import pdfplumber
 
 logger = logging.getLogger(__name__)
 
-_MEM_ID_PATTERN = re.compile(r"MEM-\d{3}-\d{2}")
+_MEM_ID_PATTERN = re.compile(r"MEM-\d{3}-\d{2}", re.IGNORECASE)
 _LOCATION_PATTERN = re.compile(
     r"Location:\s*(.+?)(?:\n|$)", re.IGNORECASE
 )
@@ -147,7 +147,7 @@ def _parse_listing(chunk: str) -> dict | None:
     mem_match = _MEM_ID_PATTERN.match(chunk)
     if not mem_match:
         return None
-    source_job_id = mem_match.group(0)
+    source_job_id = mem_match.group(0).upper()
 
     # Extract organization (member/office name)
     organization = _extract_organization(chunk)

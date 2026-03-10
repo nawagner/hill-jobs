@@ -181,6 +181,29 @@ def test_split_no_listings():
     assert _split_into_listings(text) == []
 
 
+def test_split_mixed_case_mem_id():
+    """MEM IDs with non-standard casing (e.g., 'Mem-071-26') should still be split."""
+    text = """MEM-072-26
+First job content.
+Mem-071-26
+Second job content."""
+    chunks = _split_into_listings(text)
+    assert len(chunks) == 2
+    assert chunks[0].startswith("MEM-072-26")
+    assert "Mem-071-26" in chunks[1]
+
+
+def test_parse_listing_mixed_case_mem_id():
+    """Mixed-case MEM IDs should be normalized to uppercase."""
+    chunk = """Mem-071-26
+The Office of Congressman Gilbert R. Cisneros Jr. (CA - 31) seeks a District
+Scheduler/Caseworker in Covina, CA."""
+    result = _parse_listing(chunk)
+    assert result is not None
+    assert result["source_job_id"] == "MEM-071-26"
+    assert result["title"] == "District Scheduler/Caseworker"
+
+
 # --- Full listing parse ---
 
 def test_parse_listing_full():
