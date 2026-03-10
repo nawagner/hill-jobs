@@ -23,6 +23,7 @@ export function Home() {
   const party = searchParams.get("party") || "";
   const state = searchParams.get("state") || "";
   const committee = searchParams.get("committee") || "";
+  const subcommittee = searchParams.get("subcommittee") || "";
   const freshness = searchParams.get("freshness") || searchParams.get("posted_since_days") || "";
   const salary = searchParams.get("salary") || "";
   const page = Number(searchParams.get("page")) || 1;
@@ -42,6 +43,25 @@ export function Home() {
     },
     [setSearchParams],
   );
+
+  const handleCommitteeChange = useCallback(
+    (value: string) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (value) {
+          next.set("committee", value);
+        } else {
+          next.delete("committee");
+        }
+        next.delete("subcommittee");
+        next.delete("page");
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
+
+  const effectiveCommittee = subcommittee || committee;
 
   useEffect(() => {
     Promise.all([getOrganizations(), getRoleKinds(), getStates(), getCommittees()])
@@ -63,7 +83,7 @@ export function Home() {
       organization: organization || undefined,
       party: party || undefined,
       state: state || undefined,
-      committee: committee || undefined,
+      committee: effectiveCommittee || undefined,
       posted_since_days: freshness && freshness !== "older_30" ? Number(freshness) : undefined,
       posted_before_days: freshness === "older_30" ? 30 : undefined,
       salary_min: salary !== "" ? Number(salary) : undefined,
@@ -72,7 +92,7 @@ export function Home() {
       .then(setResults)
       .catch(() => setError("Unable to load jobs. Please try again."))
       .finally(() => setLoading(false));
-  }, [q, roleKind, organization, party, state, committee, freshness, salary, page]);
+  }, [q, roleKind, organization, party, state, effectiveCommittee, freshness, salary, page]);
 
   return (
     <>
@@ -117,13 +137,15 @@ export function Home() {
             selectedParty={party}
             selectedState={state}
             selectedCommittee={committee}
+            selectedSubcommittee={subcommittee}
             selectedFreshness={freshness}
             selectedSalary={salary}
             onRoleKindChange={(v) => updateParam("role_kind", v)}
             onOrganizationChange={(v) => updateParam("organization", v)}
             onPartyChange={(v) => updateParam("party", v)}
             onStateChange={(v) => updateParam("state", v)}
-            onCommitteeChange={(v) => updateParam("committee", v)}
+            onCommitteeChange={handleCommitteeChange}
+            onSubcommitteeChange={(v) => updateParam("subcommittee", v)}
             onFreshnessChange={(v) => updateParam("freshness", v)}
             onSalaryChange={(v) => updateParam("salary", v)}
           />
