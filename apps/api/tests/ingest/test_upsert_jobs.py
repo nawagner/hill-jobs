@@ -36,7 +36,7 @@ def test_new_job_inserts(db_session):
     # SQLite strips tzinfo, so compare without tz
     assert job.first_seen_at.replace(tzinfo=None) == now.replace(tzinfo=None)
     assert job.last_seen_at.replace(tzinfo=None) == now.replace(tzinfo=None)
-    assert job.search_document == "Software Engineer Build things"
+    assert job.search_document == "Software Engineer Test Org  Build things"
 
 
 def test_re_upsert_updates_last_seen(db_session):

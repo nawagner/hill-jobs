@@ -113,7 +113,7 @@ def _update_existing(job: Job, src: SourceJob, now: datetime) -> bool:
     job.last_seen_at = now
     job.last_synced_at = now
     job.raw_payload = src.raw_payload
-    job.search_document = f"{src.title} {src.description_text}"
+    job.search_document = f"{src.title} {src.source_organization} {src.location_text or ''} {src.description_text}"
 
     # Re-open if it was previously closed but now seen again
     if job.status == "closed":
@@ -146,7 +146,7 @@ def _insert_new(session: Session, src: SourceJob, now: datetime) -> Job:
         employment_type=src.employment_type,
         description_html=src.description_html,
         description_text=src.description_text,
-        search_document=f"{src.title} {src.description_text}",
+        search_document=f"{src.title} {src.source_organization} {src.location_text or ''} {src.description_text}",
         salary_min=src.salary_min,
         salary_max=src.salary_max,
         salary_period=src.salary_period,
