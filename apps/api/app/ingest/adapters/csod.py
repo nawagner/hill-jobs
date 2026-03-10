@@ -44,9 +44,33 @@ class CsodConfig:
 
 HOUSE_CAO_CONFIG = CsodConfig(
     source_system="csod-house-cao",
-    source_organization="House CAO",
+    source_organization="Office of the CAO",
     base_url="https://house.csodfed.com",
-    career_site_id=7,
+    career_site_id=1,
+    site_param="house",
+)
+
+HOUSE_CLERK_CONFIG = CsodConfig(
+    source_system="csod-house-clerk",
+    source_organization="Clerk of the House",
+    base_url="https://house.csodfed.com",
+    career_site_id=5,
+    site_param="house",
+)
+
+HOUSE_SAA_CONFIG = CsodConfig(
+    source_system="csod-house-saa",
+    source_organization="Sergeant at Arms",
+    base_url="https://house.csodfed.com",
+    career_site_id=6,
+    site_param="house",
+)
+
+HOUSE_GREEN_GOLD_CONFIG = CsodConfig(
+    source_system="csod-house-green-gold",
+    source_organization="Green & Gold Program",
+    base_url="https://house.csodfed.com",
+    career_site_id=11,
     site_param="house",
 )
 

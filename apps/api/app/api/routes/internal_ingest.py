@@ -16,8 +16,8 @@ router = APIRouter(prefix="/api/internal")
 
 
 def build_registry(settings: Settings) -> dict[str, SourceAdapter]:
-    # CSOD adapters (house-cao, uscp) require agent-browser and are run
-    # locally via scripts/ingest_csod.py instead of on the server.
+    # CSOD adapters (house-cao, house-clerk, house-saa, house-green-gold,
+    # uscp) require agent-browser and are run locally instead of on the server.
     registry: dict[str, SourceAdapter] = {
         "senate-webscribble": SenateAdapter(),
         "loc-careers": LocAdapter(),
