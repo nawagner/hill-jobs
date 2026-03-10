@@ -115,24 +115,25 @@ def get_job(slug: str, db: Session = Depends(get_db)):
 @router.get("/organizations")
 def list_organizations(db: Session = Depends(get_db)) -> list[OrganizationItem]:
     stmt = (
-        select(Job.source_organization, Job.source_system)
+        select(Job.source_organization)
         .where(Job.status != "closed")
         .distinct()
         .order_by(Job.source_organization)
     )
-    rows = db.execute(stmt).all()
+    rows = db.execute(stmt).scalars().all()
 
+    seen: set[str] = set()
     result: list[OrganizationItem] = []
-    for name, source_system in rows:
+    for name in rows:
+        if name in seen:
+            continue
+        seen.add(name)
         party = MEMBER_PARTIES.get(name)
-        # All house-dems-resumebank member offices are Democrats
-        if party is None and source_system == "house-dems-resumebank" and name.startswith("Rep. "):
-            party = "D"
         state = MEMBER_STATES.get(name)
         committees = MEMBER_COMMITTEES.get(name)
         result.append(OrganizationItem(
             name=name,
-            source_system=source_system,
+            source_system=None,
             party=party,
             state=state,
             committees=committees,
