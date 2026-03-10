@@ -29,7 +29,7 @@ class JobDetail(JobListItem):
 
 class OrganizationItem(BaseModel):
     name: str
-    source_system: str
+    source_system: str | None = None
     party: str | None = None
     state: str | None = None
     committees: list[str] | None = None
