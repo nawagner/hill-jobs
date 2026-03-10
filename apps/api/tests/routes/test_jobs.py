@@ -102,6 +102,14 @@ def test_list_jobs_keyword_search(test_client, db_session):
     assert data["items"][0]["slug"] == "senate-101"
 
 
+def test_list_jobs_keyword_search_by_organization(test_client, db_session):
+    _seed_jobs(db_session)
+    resp = test_client.get("/api/jobs", params={"q": "Library of Congress"})
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["slug"] == "loc-201"
+
+
 def test_get_job_detail(test_client, db_session):
     _seed_jobs(db_session)
     resp = test_client.get("/api/jobs/senate-101")

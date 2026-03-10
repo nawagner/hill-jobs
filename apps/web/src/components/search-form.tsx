@@ -32,7 +32,7 @@ export function SearchForm({ initialQuery, onSearch }: SearchFormProps) {
           name="q"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Job title or keyword"
+          placeholder="Search by title, office, location..."
           className="w-full rounded-l-md border border-r-0 border-slate-300 bg-white py-3 pl-12 pr-4 text-sm font-body text-slate-900 placeholder:text-slate-400 focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/30"
         />
       </div>

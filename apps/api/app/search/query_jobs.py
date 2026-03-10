@@ -92,7 +92,12 @@ def query_jobs(
         else:
             pattern = f"%{q}%"
             stmt = stmt.where(
-                or_(Job.title.ilike(pattern), Job.description_text.ilike(pattern))
+                or_(
+                    Job.title.ilike(pattern),
+                    Job.source_organization.ilike(pattern),
+                    Job.location_text.ilike(pattern),
+                    Job.description_text.ilike(pattern),
+                )
             )
 
     # Count total before pagination

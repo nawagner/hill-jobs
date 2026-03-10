@@ -67,7 +67,7 @@ describe("Home", () => {
         <Home />
       </MemoryRouter>,
     );
-    expect(screen.getByPlaceholderText("Job title or keyword")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search by title, office, location...")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByLabelText("Role category")).toBeInTheDocument();
