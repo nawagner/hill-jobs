@@ -12,6 +12,7 @@ interface FiltersProps {
   selectedParty: string;
   selectedState: string;
   selectedCommittee: string;
+  selectedSubcommittee: string;
   selectedFreshness: string;
   selectedSalary: string;
   onRoleKindChange: (value: string) => void;
@@ -19,6 +20,7 @@ interface FiltersProps {
   onPartyChange: (value: string) => void;
   onStateChange: (value: string) => void;
   onCommitteeChange: (value: string) => void;
+  onSubcommitteeChange: (value: string) => void;
   onFreshnessChange: (value: string) => void;
   onSalaryChange: (value: string) => void;
 }
@@ -69,6 +71,7 @@ export function Filters({
   selectedParty,
   selectedState,
   selectedCommittee,
+  selectedSubcommittee,
   selectedFreshness,
   selectedSalary,
   onRoleKindChange,
@@ -76,6 +79,7 @@ export function Filters({
   onPartyChange,
   onStateChange,
   onCommitteeChange,
+  onSubcommitteeChange,
   onFreshnessChange,
   onSalaryChange,
 }: FiltersProps) {
@@ -99,15 +103,22 @@ export function Filters({
     return { officeGroups: grouped, members: mems };
   }, [organizations]);
 
-  const { senateCommittees, houseCommittees } = useMemo(() => {
+  const { senateCommittees, houseCommittees, jointCommittees } = useMemo(() => {
     const senate: CommitteeItem[] = [];
     const house: CommitteeItem[] = [];
+    const joint: CommitteeItem[] = [];
     for (const c of committees) {
       if (c.chamber === "senate") senate.push(c);
       else if (c.chamber === "house") house.push(c);
+      else if (c.chamber === "joint") joint.push(c);
     }
-    return { senateCommittees: senate, houseCommittees: house };
+    return { senateCommittees: senate, houseCommittees: house, jointCommittees: joint };
   }, [committees]);
+
+  const selectedCommitteeItem = useMemo(() => {
+    if (!selectedCommittee) return null;
+    return committees.find((c) => c.id === selectedCommittee) ?? null;
+  }, [committees, selectedCommittee]);
 
   const isMemberSelected =
     selectedOrganization.startsWith("Senator ") ||
@@ -213,35 +224,49 @@ export function Filters({
         {senateCommittees.length > 0 && (
           <optgroup label="Senate">
             {senateCommittees.map((c) => (
-              <>
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-                {c.subcommittees.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {"  \u2014 " + s.name}
-                  </option>
-                ))}
-              </>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </optgroup>
         )}
         {houseCommittees.length > 0 && (
           <optgroup label="House">
             {houseCommittees.map((c) => (
-              <>
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-                {c.subcommittees.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {"  \u2014 " + s.name}
-                  </option>
-                ))}
-              </>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </optgroup>
         )}
+        {jointCommittees.length > 0 && (
+          <optgroup label="Joint">
+            {jointCommittees.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
+
+      <select
+        aria-label="Subcommittee"
+        value={selectedSubcommittee}
+        onChange={(e) => onSubcommitteeChange(e.target.value)}
+        disabled={!selectedCommitteeItem || selectedCommitteeItem.subcommittees.length === 0}
+        className={selectClasses + (!selectedCommitteeItem || selectedCommitteeItem.subcommittees.length === 0 ? " opacity-50 cursor-not-allowed" : "")}
+      >
+        <option value="">
+          {selectedCommitteeItem && selectedCommitteeItem.subcommittees.length > 0
+            ? "All subcommittees"
+            : "Subcommittee"}
+        </option>
+        {selectedCommitteeItem?.subcommittees.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+          </option>
+        ))}
       </select>
 
       <select
