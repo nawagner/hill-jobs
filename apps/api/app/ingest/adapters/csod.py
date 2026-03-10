@@ -25,6 +25,15 @@ _EXTRACT_JOBS_JS = (
     "})))"
 )
 
+# JS snippet to extract detail fields from a CSOD requisition detail page.
+_EXTRACT_DETAIL_JS = (
+    "JSON.stringify({"
+    "location:(document.querySelector('[data-tag=displayLocationMessage]')||{}).innerText||'',"
+    "descHtml:(document.querySelector('.p-view-jobdetailsad .p-htmlviewer')||{}).innerHTML||'',"
+    "descText:(document.querySelector('.p-view-jobdetailsad .p-htmlviewer')||{}).innerText||''"
+    "})"
+)
+
 
 @dataclass(frozen=True)
 class CsodConfig:
@@ -118,17 +127,27 @@ class CsodAdapter:
                 ["agent-browser", "eval", _EXTRACT_JOBS_JS, "--json"],
                 capture_output=True, text=True, timeout=15, check=True,
             )
-            subprocess.run(
-                ["agent-browser", "close"],
-                capture_output=True, text=True, timeout=10,
-            )
         except (subprocess.SubprocessError, FileNotFoundError):
             logger.exception("CSOD %s: agent-browser failed", self.config.source_system)
-            # Make sure browser is cleaned up on error
             subprocess.run(["agent-browser", "close"], capture_output=True, text=True, timeout=10)
             return []
 
-        return _parse_browser_result(result.stdout, self.config)
+        jobs = _parse_browser_result(result.stdout, self.config)
+        if not jobs:
+            subprocess.run(["agent-browser", "close"], capture_output=True, text=True, timeout=10)
+            return jobs
+
+        # Enrich each job by visiting its detail page (browser is still open)
+        enriched: list[SourceJob] = []
+        for job in jobs:
+            detail = _fetch_detail_via_browser(job.source_url, self.config)
+            if detail:
+                enriched.append(_apply_detail(job, detail))
+            else:
+                enriched.append(job)
+
+        subprocess.run(["agent-browser", "close"], capture_output=True, text=True, timeout=10)
+        return enriched
 
     def _fetch_via_api(self, client: httpx.Client) -> list[SourceJob]:
         api_url = f"{self.config.base_url}/services/api/x/career-site/v1/search"
@@ -144,6 +163,81 @@ class CsodAdapter:
         except Exception:
             logger.exception("CSOD %s: API fallback also failed", self.config.source_system)
             return []
+
+
+def _fetch_detail_via_browser(url: str, config: CsodConfig) -> dict | None:
+    """Navigate to a detail page and extract description/location/salary."""
+    try:
+        subprocess.run(
+            ["agent-browser", "open", url],
+            capture_output=True, text=True, timeout=30, check=True,
+        )
+        subprocess.run(
+            ["agent-browser", "wait", ".p-view-jobdetailsad .p-htmlviewer"],
+            capture_output=True, text=True, timeout=20,
+        )
+        result = subprocess.run(
+            ["agent-browser", "eval", _EXTRACT_DETAIL_JS, "--json"],
+            capture_output=True, text=True, timeout=15, check=True,
+        )
+    except (subprocess.SubprocessError, FileNotFoundError):
+        logger.warning("CSOD %s: failed to fetch detail for %s", config.source_system, url)
+        return None
+
+    try:
+        outer = json.loads(result.stdout)
+        return json.loads(outer.get("data", {}).get("result", "{}"))
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
+def _apply_detail(job: SourceJob, detail: dict) -> SourceJob:
+    """Merge detail-page data into a SourceJob."""
+    desc_html = detail.get("descHtml", "")
+    desc_text = detail.get("descText", "")
+    location = detail.get("location", "").strip() or job.location_text
+
+    salary_min = salary_max = salary_period = None
+    parsed = parse_salary_from_text(desc_text)
+    if parsed:
+        salary_min = parsed.min_value
+        salary_max = parsed.max_value
+        salary_period = parsed.period
+    else:
+        # CSOD often uses "Salary Range: 73,712.00 - 84,271.00" without $
+        sal_match = re.search(
+            r"Salary\s+Range:\s*([\d,]+(?:\.\d{2})?)\s*[-–—]\s*([\d,]+(?:\.\d{2})?)",
+            desc_text,
+        )
+        if sal_match:
+            salary_min = float(sal_match.group(1).replace(",", ""))
+            salary_max = float(sal_match.group(2).replace(",", ""))
+            salary_period = "hourly" if salary_min < 200 else "yearly"
+
+    closing_at = None
+    closing_match = re.search(r"Closing Date:\s*(\d{1,2}/\d{1,2}/\d{4})", desc_text)
+    if closing_match:
+        from datetime import datetime
+        try:
+            closing_at = datetime.strptime(closing_match.group(1), "%m/%d/%Y")
+        except ValueError:
+            pass
+
+    return SourceJob(
+        source_system=job.source_system,
+        source_organization=job.source_organization,
+        source_job_id=job.source_job_id,
+        source_url=job.source_url,
+        title=job.title,
+        description_html=desc_html or job.description_html,
+        description_text=desc_text or job.description_text,
+        location_text=location,
+        salary_min=salary_min,
+        salary_max=salary_max,
+        salary_period=salary_period,
+        closing_at=closing_at,
+        raw_payload={**job.raw_payload, "detail": detail},
+    )
 
 
 def _parse_browser_result(stdout: str, config: CsodConfig) -> list[SourceJob]:
