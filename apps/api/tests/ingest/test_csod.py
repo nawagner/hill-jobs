@@ -2,6 +2,10 @@ import json
 
 from app.ingest.adapters.csod import (
     CsodConfig,
+    HOUSE_CAO_CONFIG,
+    HOUSE_CLERK_CONFIG,
+    HOUSE_GREEN_GOLD_CONFIG,
+    HOUSE_SAA_CONFIG,
     _parse_browser_result,
     parse_listing_page,
     parse_api_response,
@@ -90,3 +94,17 @@ def test_parse_browser_result_empty():
 def test_parse_browser_result_invalid_json():
     jobs = _parse_browser_result("not json", TEST_CONFIG)
     assert jobs == []
+
+
+def test_house_csod_configs():
+    assert HOUSE_CAO_CONFIG.career_site_id == 1
+    assert HOUSE_CAO_CONFIG.listing_path == "/ux/ats/careersite/1/home?c=house"
+
+    assert HOUSE_CLERK_CONFIG.career_site_id == 5
+    assert HOUSE_CLERK_CONFIG.listing_path == "/ux/ats/careersite/5/home?c=house"
+
+    assert HOUSE_SAA_CONFIG.career_site_id == 6
+    assert HOUSE_SAA_CONFIG.listing_path == "/ux/ats/careersite/6/home?c=house"
+
+    assert HOUSE_GREEN_GOLD_CONFIG.career_site_id == 11
+    assert HOUSE_GREEN_GOLD_CONFIG.listing_path == "/ux/ats/careersite/11/home?c=house"
