@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -14,12 +15,19 @@ from app.search.slugs import generate_slug
 
 logger = logging.getLogger(__name__)
 
+# Source systems known to overlap — checked for cross-source duplicates
+_CROSS_SOURCE_PAIRS: dict[str, list[str]] = {
+    "house-hvaps": ["house-dems-resumebank"],
+    "house-dems-resumebank": ["house-hvaps"],
+}
+
 
 @dataclass
 class UpsertResult:
     created: int = 0
     updated: int = 0
     unchanged: int = 0
+    skipped: int = 0
     seen_ids: list[int] = field(default_factory=list)
 
 
@@ -45,6 +53,18 @@ def upsert_jobs(
                 result.unchanged += 1
             result.seen_ids.append(existing.id)
         else:
+            # Check for cross-source duplicates before inserting
+            cross_dup = _find_cross_source_duplicate(session, src)
+            if cross_dup:
+                logger.info(
+                    "Skipping cross-source duplicate: %s '%s' at '%s' "
+                    "(matches %s job id=%d)",
+                    src.source_system, src.title, src.source_organization,
+                    cross_dup.source_system, cross_dup.id,
+                )
+                result.skipped += 1
+                continue
+
             new_job = _insert_new(session, src, now)
             result.created += 1
             session.flush()
@@ -169,3 +189,40 @@ def _enrich_salary(src: SourceJob, existing: Job | None) -> None:
     src.salary_min = parsed.min_value
     src.salary_max = parsed.max_value
     src.salary_period = parsed.period
+
+
+def _find_cross_source_duplicate(session: Session, src: SourceJob) -> Job | None:
+    """Check if a job from one source already exists from another overlapping source."""
+    partner_sources = _CROSS_SOURCE_PAIRS.get(src.source_system)
+    if not partner_sources:
+        return None
+
+    normalized_title = _normalize_for_matching(src.title)
+    normalized_org = _normalize_for_matching(src.source_organization)
+
+    candidates = (
+        session.execute(
+            select(Job).where(
+                Job.source_system.in_(partner_sources),
+                Job.status == "open",
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    for job in candidates:
+        if (
+            _normalize_for_matching(job.title) == normalized_title
+            and _normalize_for_matching(job.source_organization) == normalized_org
+        ):
+            return job
+    return None
+
+
+def _normalize_for_matching(text: str) -> str:
+    """Normalize text for fuzzy cross-source matching."""
+    text = text.lower()
+    text = re.sub(r"[^\w\s]", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()

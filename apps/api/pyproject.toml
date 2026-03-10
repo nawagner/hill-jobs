@@ -13,6 +13,7 @@ dependencies = [
   "httpx",
   "beautifulsoup4",
   "lxml",
+  "pdfplumber",
 ]
 
 [dependency-groups]
