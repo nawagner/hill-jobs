@@ -15,6 +15,7 @@ dependencies = [
   "lxml",
   "pdfplumber",
   "playwright",
+  "python-dotenv",
 ]
 
 [dependency-groups]

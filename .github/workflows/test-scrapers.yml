@@ -44,6 +44,9 @@ jobs:
 
       - name: Scrape all sources
         working-directory: apps/api
+        env:
+          USAJOBS_API_KEY: ${{ secrets.USAJOBS_API_KEY }}
+          USAJOBS_USER_AGENT_EMAIL: ${{ secrets.USAJOBS_USER_AGENT_EMAIL }}
         run: |
           uv run python ../../scripts/scrape_all.py --output-dir ../../data/scraped | tee /tmp/scrape-summary.md
 

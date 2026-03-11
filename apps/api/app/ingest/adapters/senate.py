@@ -15,6 +15,11 @@ BASE_URL = "https://careers.employment.senate.gov"
 API_URL = f"{BASE_URL}/api/v1/jobs"
 SOURCE_SYSTEM = "senate-webscribble"
 
+_BROWSER_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
 
 class SenateAdapter:
     source_system = SOURCE_SYSTEM
@@ -47,7 +52,11 @@ class SenateAdapter:
         return jobs
 
     def _fetch_page(self, client: httpx.Client, page: int) -> dict:
-        resp = client.get(API_URL, params={"page": page, "per_page": 25})
+        resp = client.get(
+            API_URL,
+            params={"page": page, "per_page": 25},
+            headers={"User-Agent": _BROWSER_UA},
+        )
         resp.raise_for_status()
         return resp.json()
 

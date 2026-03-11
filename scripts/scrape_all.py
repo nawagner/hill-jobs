@@ -8,17 +8,23 @@ Usage:
 import argparse
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
+
+# Load .env from repo root
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "apps" / "api"))
 
 from app.ingest.adapters.senate import SenateAdapter
 from app.ingest.adapters.loc import LocAdapter
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
+from app.ingest.adapters.aoc_usajobs import AocUsajobsAdapter
 from app.ingest.adapters.csod import (
     CsodAdapter,
     HOUSE_CAO_CONFIG,
@@ -74,10 +80,14 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    usajobs_api_key = os.environ.get("USAJOBS_API_KEY", "")
+    usajobs_email = os.environ.get("USAJOBS_USER_AGENT_EMAIL", "")
+
     adapters = [
         ("senate", SenateAdapter()),
         ("loc", LocAdapter()),
         ("house_dems_resumebank", HouseDemsResumebankAdapter()),
+        ("aoc_usajobs", AocUsajobsAdapter(api_key=usajobs_api_key, user_agent_email=usajobs_email)),
         ("csod_house_cao", CsodAdapter(HOUSE_CAO_CONFIG)),
         ("csod_house_clerk", CsodAdapter(HOUSE_CLERK_CONFIG)),
         ("csod_house_saa", CsodAdapter(HOUSE_SAA_CONFIG)),
@@ -85,8 +95,10 @@ def main():
         ("csod_uscp", CsodAdapter(USCP_CONFIG)),
     ]
 
-    # Sources that may legitimately have 0 jobs (e.g. no current openings)
-    allow_empty = {"csod_house_saa"}
+    # Sources that may legitimately have 0 jobs
+    # csod_house_saa: no current openings
+    # aoc_usajobs: skipped if no API key configured
+    allow_empty = {"csod_house_saa", "aoc_usajobs"}
 
     total = 0
     all_results = {}
