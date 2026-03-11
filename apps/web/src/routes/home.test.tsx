@@ -16,6 +16,10 @@ const mockJobs = {
       employment_type: null,
       posted_at: "2026-03-01T00:00:00",
       closing_at: null,
+      salary_min: null,
+      salary_max: null,
+      salary_period: null,
+      member_committees: null,
     },
     {
       slug: "systems-admin-cao",
@@ -29,6 +33,10 @@ const mockJobs = {
       employment_type: null,
       posted_at: "2026-02-15T00:00:00",
       closing_at: null,
+      salary_min: null,
+      salary_max: null,
+      salary_period: null,
+      member_committees: null,
     },
   ],
   total: 2,
@@ -60,6 +68,18 @@ afterEach(() => {
 });
 
 describe("Home", () => {
+  it("announces loading state for screen readers", () => {
+    mockFetchResponses();
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
+    const status = screen.getByRole("status");
+    expect(status).toBeInTheDocument();
+    expect(status).toHaveTextContent(/loading/i);
+  });
+
   it("renders search controls", async () => {
     mockFetchResponses();
     render(
@@ -93,6 +113,29 @@ describe("Home", () => {
       expect(screen.getAllByText("U.S. House of Representatives").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("Technology").length).toBeGreaterThanOrEqual(1);
     });
+  });
+
+  it("includes sr-only labels on job card fields for LLM readability", async () => {
+    mockFetchResponses();
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Chief of Staff")).toBeInTheDocument();
+    });
+    // Each job card should have labeled fields via sr-only spans
+    const articles = screen.getAllByRole("article");
+    const first = articles[0];
+    expect(first).toHaveTextContent("Organization:");
+    expect(first).toHaveTextContent("Category:");
+    expect(first).toHaveTextContent("Salary:");
+    expect(first).toHaveTextContent("Posted:");
+    // Job with location should have location label
+    expect(first).toHaveTextContent("Location:");
+    // Job with office/member should have member label
+    expect(first).toHaveTextContent("Member:");
   });
 
   it("shows a closed badge for closed jobs", async () => {
