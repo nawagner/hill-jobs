@@ -8,7 +8,7 @@ function Layout() {
       <header className="border-b border-navy-800 bg-navy-950">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
           <Link to="/" className="flex items-center gap-2 text-white">
-            <svg className="h-7 w-7 text-gold-400" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="h-7 w-7 text-gold-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 2L2 8v2h20V8L12 2zm0 2.5L18.5 8h-13L12 4.5zM4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7h-2v7H6v-7H4z" />
               <path d="M8 12h2v5H8zM11 12h2v5h-2zM14 12h2v5h-2z" />
             </svg>

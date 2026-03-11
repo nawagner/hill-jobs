@@ -19,6 +19,54 @@ export function JobDetail() {
       .finally(() => setLoading(false));
   }, [slug]);
 
+  useEffect(() => {
+    if (!job) return;
+    const { employer: org } = getEmployerDisplay(job);
+    const jsonLd: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "JobPosting",
+      title: job.title,
+      datePosted: job.posted_at || undefined,
+      description: job.description_text,
+      url: job.source_url,
+      hiringOrganization: {
+        "@type": "Organization",
+        name: org,
+      },
+    };
+    if (job.location_text) {
+      jsonLd.jobLocation = {
+        "@type": "Place",
+        address: { "@type": "PostalAddress", addressLocality: job.location_text },
+      };
+    }
+    if (job.salary_min != null || job.salary_max != null) {
+      const unit = job.salary_period === "hourly" ? "HOUR" : "YEAR";
+      jsonLd.baseSalary = {
+        "@type": "MonetaryAmount",
+        currency: "USD",
+        value: {
+          "@type": "QuantitativeValue",
+          minValue: job.salary_min,
+          maxValue: job.salary_max,
+          unitText: unit,
+        },
+      };
+    }
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.textContent = JSON.stringify(jsonLd);
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, [job]);
+
+  useEffect(() => {
+    if (!job) return;
+    const { employer: org } = getEmployerDisplay(job);
+    document.title = `${job.title} at ${org} — Hill Jobs`;
+    return () => { document.title = "Hill Jobs — Legislative Branch Careers"; };
+  }, [job]);
+
   if (loading) {
     return (
       <div className="flex justify-center py-32">
@@ -47,7 +95,7 @@ export function JobDetail() {
         to="/"
         className="inline-flex items-center gap-1 text-sm font-medium text-navy-600 hover:text-navy-800 font-body transition-colors mb-8"
       >
-        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path
             fillRule="evenodd"
             d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
@@ -139,7 +187,7 @@ export function JobDetail() {
           className="inline-flex items-center gap-2 rounded-md bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white font-body transition-colors hover:bg-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-600 focus:ring-offset-2"
         >
           View Original Posting
-          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path
               fillRule="evenodd"
               d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.25-.75a.75.75 0 01.75-.75h3.5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0V6.31l-5.47 5.47a.75.75 0 01-1.06-1.06l5.47-5.47H12.25a.75.75 0 01-.75-.75z"
