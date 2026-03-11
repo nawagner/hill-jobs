@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime, timezone
 
 import httpx
@@ -42,6 +43,7 @@ class SenateAdapter:
                 jobs.append(job)
             except Exception:
                 logger.exception("Failed to parse Senate job: %s", item.get("url"))
+            time.sleep(1.0)
         return jobs
 
     def _fetch_page(self, client: httpx.Client, page: int) -> dict:

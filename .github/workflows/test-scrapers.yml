@@ -1,0 +1,63 @@
+name: Scrape & Test
+
+on:
+  schedule:
+    # Run daily at 6 AM ET (10:00 UTC)
+    - cron: "0 10 * * *"
+  push:
+    branches: [main, playwright-csod-scraper]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        working-directory: apps/api
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: uv sync
+
+      - name: Install Playwright browsers
+        working-directory: apps/api
+        run: uv run playwright install --with-deps chromium
+
+      - name: Run unit tests
+        working-directory: apps/api
+        run: uv run pytest tests/ -v --ignore=tests/ingest/test_live_scrape.py
+
+      - name: Run live scrape tests
+        working-directory: apps/api
+        run: uv run pytest tests/ingest/test_live_scrape.py -v -m live
+
+      - name: Scrape all sources
+        working-directory: apps/api
+        run: |
+          uv run python ../../scripts/scrape_all.py --output-dir ../../data/scraped | tee /tmp/scrape-summary.md
+
+      - name: Post summary to job summary
+        run: cat /tmp/scrape-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit scraped data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/scraped/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update scraped job data $(date -u +%Y-%m-%d)"
+            git push
+          fi

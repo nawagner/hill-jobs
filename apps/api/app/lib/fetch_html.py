@@ -1,3 +1,5 @@
+import time
+
 import httpx
 
 USER_AGENT = (
@@ -6,7 +8,13 @@ USER_AGENT = (
 )
 
 
-def fetch_page(client: httpx.Client, url: str) -> str:
-    resp = client.get(url, headers={"User-Agent": USER_AGENT}, follow_redirects=True)
-    resp.raise_for_status()
-    return resp.text
+def fetch_page(client: httpx.Client, url: str, retries: int = 3) -> str:
+    for attempt in range(retries):
+        resp = client.get(url, headers={"User-Agent": USER_AGENT}, follow_redirects=True)
+        if resp.status_code == 429 and attempt < retries - 1:
+            wait = 2 ** (attempt + 1)
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        return resp.text
+    return ""
