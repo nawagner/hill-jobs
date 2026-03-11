@@ -40,6 +40,9 @@ jobs:
 
       - name: Run live scrape tests
         working-directory: apps/api
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: uv run pytest tests/ingest/test_live_scrape.py -v -m live
 
       - name: Scrape all sources
@@ -47,6 +50,8 @@ jobs:
         env:
           USAJOBS_API_KEY: ${{ secrets.USAJOBS_API_KEY }}
           USAJOBS_USER_AGENT_EMAIL: ${{ secrets.USAJOBS_USER_AGENT_EMAIL }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
           uv run python ../../scripts/scrape_all.py --output-dir ../../data/scraped | tee /tmp/scrape-summary.md
 

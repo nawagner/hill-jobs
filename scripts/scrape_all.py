@@ -33,6 +33,7 @@ from app.ingest.adapters.csod import (
     HOUSE_GREEN_GOLD_CONFIG,
     USCP_CONFIG,
 )
+from app.ingest.adapters.hvaps_email import HvapsEmailAdapter
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -93,12 +94,14 @@ def main():
         ("csod_house_saa", CsodAdapter(HOUSE_SAA_CONFIG)),
         ("csod_house_green_gold", CsodAdapter(HOUSE_GREEN_GOLD_CONFIG)),
         ("csod_uscp", CsodAdapter(USCP_CONFIG)),
+        ("hvaps", HvapsEmailAdapter()),
     ]
 
     # Sources that may legitimately have 0 jobs
     # csod_house_saa: no current openings
     # aoc_usajobs: skipped if no API key configured
-    allow_empty = {"csod_house_saa", "aoc_usajobs"}
+    # hvaps: skipped if no GMAIL_APP_PASSWORD configured
+    allow_empty = {"csod_house_saa", "aoc_usajobs", "hvaps"}
 
     total = 0
     all_results = {}

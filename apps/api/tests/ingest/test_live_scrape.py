@@ -11,6 +11,7 @@ from app.ingest.adapters.senate import SenateAdapter
 from app.ingest.adapters.loc import LocAdapter
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
 from app.ingest.adapters.csod import CsodAdapter, HOUSE_CAO_CONFIG, USCP_CONFIG
+from app.ingest.adapters.hvaps_email import HvapsEmailAdapter
 
 pytestmark = pytest.mark.live
 
@@ -122,3 +123,116 @@ def test_csod_uscp_fields(csod_uscp_jobs):
     assert job.title
     assert job.source_job_id
     assert job.source_system == "csod-uscp"
+
+
+# ── HVAPS Email ───────────────────────────────────────────────────────
+
+
+@pytest.fixture(scope="module")
+def hvaps_jobs(http_client):
+    return HvapsEmailAdapter().fetch_jobs(http_client)
+
+
+def test_hvaps_got_jobs(hvaps_jobs):
+    assert len(hvaps_jobs) > 0, "HVAPS email adapter returned no jobs"
+
+
+def test_hvaps_fields(hvaps_jobs):
+    job = hvaps_jobs[0]
+    assert job.title
+    assert job.source_job_id
+    assert job.source_url
+    assert job.source_system == "house-hvaps"
+
+
+def test_hvaps_pdf_urls_are_govdelivery(hvaps_jobs):
+    """Catch if PDF hosting changes away from govdelivery CDN."""
+    for job in hvaps_jobs:
+        assert "content.govdelivery.com" in job.source_url, (
+            f"PDF URL format changed — expected govdelivery CDN, got: {job.source_url}"
+        )
+
+
+def test_hvaps_has_mem_ids(hvaps_jobs):
+    """Catch if HVAPS changes their MEM-XXX-XX ID format."""
+    mem_jobs = [j for j in hvaps_jobs if j.source_job_id and j.source_job_id.startswith("MEM-")]
+    assert len(mem_jobs) > 0, (
+        "No jobs with MEM-XXX-XX IDs found — HVAPS PDF format may have changed"
+    )
+
+
+# ── HVAPS Email Format (canary tests) ────────────────────────────────
+# These validate our assumptions about the email/inbox so we know fast
+# if something changes upstream (sender, subject, URL structure).
+
+
+@pytest.fixture(scope="module")
+def hvaps_email_metadata():
+    """Raw email metadata from the inbox — checks format without parsing PDFs."""
+    import imaplib
+    import email as emaillib
+    import os
+
+    user = os.environ.get("GMAIL_ADDRESS", "")
+    pw = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "")
+    if not pw:
+        pytest.skip("GMAIL_APP_PASSWORD not set")
+
+    mail = imaplib.IMAP4_SSL("imap.gmail.com")
+    mail.login(user, pw)
+    mail.select("INBOX", readonly=True)
+
+    status, data = mail.search(
+        None, '(SUBJECT "House of Representatives Vacancy Announcement Bulletin")'
+    )
+    msg_ids = data[0].split() if data[0] else []
+    if not msg_ids:
+        mail.logout()
+        pytest.skip("No HVAPS emails in inbox")
+
+    # Fetch the most recent one
+    status, msg_data = mail.fetch(msg_ids[-1], "(RFC822)")
+    msg = emaillib.message_from_bytes(msg_data[0][1])
+
+    # Get HTML body
+    html = ""
+    for part in msg.walk():
+        if part.get_content_type() == "text/html":
+            html = part.get_payload(decode=True).decode("utf-8", errors="replace")
+            break
+
+    mail.logout()
+    return {"subject": msg["Subject"], "from": msg["From"], "html": html}
+
+
+def test_hvaps_email_subject_format(hvaps_email_metadata):
+    """Alert if the bulletin subject line changes."""
+    subj = hvaps_email_metadata["subject"]
+    assert "Vacancy Announcement Bulletin" in subj, (
+        f"HVAPS email subject changed — got: {subj!r}"
+    )
+
+
+def test_hvaps_email_has_tracking_pdf_links(hvaps_email_metadata):
+    """Alert if govdelivery stops wrapping PDF links in tracking URLs."""
+    import re
+    from app.ingest.adapters.hvaps_email import _TRACKING_PDF_RE
+
+    html = hvaps_email_metadata["html"]
+    matches = _TRACKING_PDF_RE.findall(html)
+    assert len(matches) >= 1, (
+        "No govdelivery tracking PDF links found in email HTML. "
+        "The link format may have changed. Check the email source."
+    )
+
+
+def test_hvaps_email_has_two_pdfs(hvaps_email_metadata):
+    """Each bulletin should have Members + Internships PDFs."""
+    from app.ingest.adapters.hvaps_email import _TRACKING_PDF_RE
+
+    html = hvaps_email_metadata["html"]
+    matches = _TRACKING_PDF_RE.findall(html)
+    assert len(matches) >= 2, (
+        f"Expected 2 PDF links (Members + Internships), found {len(matches)}. "
+        "Email format may have changed."
+    )
