@@ -54,23 +54,21 @@ def job_to_dict(job) -> dict:
     return d
 
 
-def print_summary(name: str, jobs: list[dict]):
-    """Print a markdown-friendly summary for a source."""
-    print(f"\n### {name}: {len(jobs)} jobs found")
+def print_detail(name: str, jobs: list[dict]):
+    """Print sample jobs for a source."""
     if not jobs:
-        print("_(no jobs)_")
         return
 
-    # Show first 3 examples
-    for job in jobs[:3]:
+    print(f"\n<details><summary><b>{name}</b> — {len(jobs)} jobs</summary>\n")
+    for job in jobs[:5]:
         salary = ""
         if job.get("salary_min") and job.get("salary_max"):
             salary = f" | ${job['salary_min']:,.0f}-${job['salary_max']:,.0f} {job.get('salary_period', '')}"
         location = f" | {job['location_text']}" if job.get("location_text") else ""
         print(f"- **{job['title']}** — {job.get('source_organization', 'N/A')}{location}{salary}")
-
-    if len(jobs) > 3:
-        print(f"- _...and {len(jobs) - 3} more_")
+    if len(jobs) > 5:
+        print(f"- _...and {len(jobs) - 5} more_")
+    print("\n</details>")
 
 
 def main():
@@ -97,17 +95,19 @@ def main():
         ("hvaps", HvapsEmailAdapter()),
     ]
 
-    # Sources that may legitimately have 0 jobs
+    # Sources that may legitimately have 0 jobs or fail on CI
+    # senate: 403s from GitHub Actions cloud IPs
     # csod_house_saa: no current openings
     # aoc_usajobs: skipped if no API key configured
     # hvaps: skipped if no GMAIL_APP_PASSWORD configured
-    allow_empty = {"csod_house_saa", "aoc_usajobs", "hvaps"}
+    allow_empty = {"senate", "csod_house_saa", "aoc_usajobs", "hvaps"}
 
     total = 0
-    all_results = {}
+    all_results: dict[str, list[dict]] = {}
+    statuses: list[dict] = []  # for the summary table
     failures = []
 
-    print(f"# Scrape Results — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
 
     with httpx.Client(timeout=60.0) as client:
         for name, adapter in adapters:
@@ -117,12 +117,12 @@ def main():
             except Exception as e:
                 logger.exception("Failed to scrape %s", name)
                 jobs = []
-                failures.append(f"{name}: exception — {e}")
-                print(f"\n### {name}: FAILED ({e})")
+                if name in allow_empty:
+                    statuses.append({"name": name, "count": 0, "status": "SKIP", "note": f"error (allowed): {e!s:.50}"})
+                else:
+                    failures.append(f"{name}: exception — {e}")
+                    statuses.append({"name": name, "count": 0, "status": "FAIL", "note": str(e)[:60]})
                 continue
-
-            if not jobs and name not in allow_empty:
-                failures.append(f"{name}: returned 0 jobs (site may have changed)")
 
             all_results[name] = jobs
             total += len(jobs)
@@ -131,7 +131,13 @@ def main():
             out_file = output_dir / f"{name}.json"
             out_file.write_text(json.dumps(jobs, indent=2, default=str))
 
-            print_summary(name, jobs)
+            if not jobs and name not in allow_empty:
+                failures.append(f"{name}: returned 0 jobs (site may have changed)")
+                statuses.append({"name": name, "count": 0, "status": "WARN", "note": "0 jobs — site may have changed"})
+            elif not jobs:
+                statuses.append({"name": name, "count": 0, "status": "SKIP", "note": "allowed empty / no credentials"})
+            else:
+                statuses.append({"name": name, "count": len(jobs), "status": "OK", "note": ""})
 
     # Save combined file
     combined_file = output_dir / "all_jobs.json"
@@ -140,11 +146,28 @@ def main():
         all_jobs.extend(jobs)
     combined_file.write_text(json.dumps(all_jobs, indent=2, default=str))
 
-    print(f"\n---\n**Total: {total} jobs across {len(all_results)} sources**")
+    # ── Print summary ──────────────────────────────────────────────────
+    print(f"# Scrape Results — {timestamp}\n")
+
+    # Status table
+    print("| Source | Status | Jobs | Note |")
+    print("|--------|--------|------|------|")
+    for s in statuses:
+        icon = {"OK": "✅", "WARN": "⚠️", "FAIL": "❌", "SKIP": "⏭️"}[s["status"]]
+        print(f"| {s['name']} | {icon} {s['status']} | {s['count']} | {s['note']} |")
+
+    ok_count = sum(1 for s in statuses if s["status"] == "OK")
+    fail_count = sum(1 for s in statuses if s["status"] in ("FAIL", "WARN"))
+    print(f"\n**{total} jobs from {ok_count} sources** ({fail_count} failed/warning)")
     print(f"Files saved to `{output_dir}/`")
 
+    # Expandable details per source
+    print("\n---\n## Details\n")
+    for name, jobs in all_results.items():
+        print_detail(name, jobs)
+
     if failures:
-        print("\n## Failures")
+        print("\n## ❌ Failures\n")
         for f in failures:
             print(f"- {f}")
         sys.exit(1)
