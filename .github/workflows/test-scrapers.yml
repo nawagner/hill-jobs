@@ -66,5 +66,5 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore: update scraped job data $(date -u +%Y-%m-%d)"
-            git push
+            git push origin HEAD:${{ github.ref_name }}
           fi
