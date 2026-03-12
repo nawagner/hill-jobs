@@ -23,12 +23,22 @@ _CROSS_SOURCE_PAIRS: dict[str, list[str]] = {
 
 
 @dataclass
+class JobChange:
+    title: str
+    organization: str
+    changed_fields: list[str]
+
+
+@dataclass
 class UpsertResult:
     created: int = 0
     updated: int = 0
     unchanged: int = 0
     skipped: int = 0
     seen_ids: list[int] = field(default_factory=list)
+    created_details: list[str] = field(default_factory=list)
+    updated_details: list[JobChange] = field(default_factory=list)
+    reopened_details: list[str] = field(default_factory=list)
 
 
 def upsert_jobs(
@@ -46,9 +56,16 @@ def upsert_jobs(
             _enrich_salary(src, existing)
 
         if existing:
-            changed = _update_existing(existing, src, now)
-            if changed:
+            changed_fields = _update_existing(existing, src, now)
+            if changed_fields:
                 result.updated += 1
+                result.updated_details.append(JobChange(
+                    title=src.title,
+                    organization=src.source_organization,
+                    changed_fields=changed_fields,
+                ))
+                if "status (reopened)" in changed_fields:
+                    result.reopened_details.append(src.title)
             else:
                 result.unchanged += 1
             result.seen_ids.append(existing.id)
@@ -67,6 +84,7 @@ def upsert_jobs(
 
             new_job = _insert_new(session, src, now)
             result.created += 1
+            result.created_details.append(src.title)
             session.flush()
             result.seen_ids.append(new_job.id)
 
@@ -99,8 +117,9 @@ def _find_existing(session: Session, src: SourceJob) -> Job | None:
     ).scalar_one_or_none()
 
 
-def _update_existing(job: Job, src: SourceJob, now: datetime) -> bool:
-    changed = False
+def _update_existing(job: Job, src: SourceJob, now: datetime) -> list[str]:
+    """Update an existing job. Returns list of field names that changed."""
+    changed_fields: list[str] = []
     for attr in ("title", "description_html", "description_text", "location_text",
                  "employment_type", "source_organization", "source_url",
                  "posted_at", "closing_at",
@@ -108,7 +127,7 @@ def _update_existing(job: Job, src: SourceJob, now: datetime) -> bool:
         new_val = getattr(src, attr)
         if new_val is not None and getattr(job, attr) != new_val:
             setattr(job, attr, new_val)
-            changed = True
+            changed_fields.append(attr)
 
     job.last_seen_at = now
     job.last_synced_at = now
@@ -118,9 +137,9 @@ def _update_existing(job: Job, src: SourceJob, now: datetime) -> bool:
     # Re-open if it was previously closed but now seen again
     if job.status == "closed":
         job.status = "open"
-        changed = True
+        changed_fields.append("status (reopened)")
 
-    return changed
+    return changed_fields
 
 
 def _insert_new(session: Session, src: SourceJob, now: datetime) -> Job:

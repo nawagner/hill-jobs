@@ -98,14 +98,14 @@ def ingest_hvaps(
         # Parse and upsert
         source_jobs = parse_hvaps_source_jobs(pdf_bytes, pdf_url)
         result = upsert_jobs(db, source_jobs, now)
-        closed = mark_missing_jobs(db, source_system, set(result.seen_ids), now)
+        missing_result = mark_missing_jobs(db, source_system, set(result.seen_ids), now)
 
         sync_run.status = "success"
         sync_run.finished_at = datetime.now(timezone.utc)
         sync_run.jobs_found = len(source_jobs)
         sync_run.jobs_created = result.created
         sync_run.jobs_updated = result.updated
-        sync_run.jobs_closed = closed
+        sync_run.jobs_closed = missing_result.closed_count
         db.commit()
 
         return {
@@ -114,7 +114,7 @@ def ingest_hvaps(
             "created": result.created,
             "updated": result.updated,
             "skipped": result.skipped,
-            "closed": closed,
+            "closed": missing_result.closed_count,
         }
     except Exception as e:
         logger.exception("HVAPS ingest failed: %s", e)

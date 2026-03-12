@@ -38,8 +38,8 @@ def test_no_closure_with_one_sync(db_session):
     _add_sync_run(db_session, "test-source", t1)
 
     t2 = datetime(2026, 1, 2, tzinfo=timezone.utc)
-    closed = mark_missing_jobs(db_session, "test-source", set(), t2)
-    assert closed == 0
+    result = mark_missing_jobs(db_session, "test-source", set(), t2)
+    assert result.closed_count == 0
 
 
 def test_closure_after_two_missed_syncs(db_session):
@@ -52,8 +52,9 @@ def test_closure_after_two_missed_syncs(db_session):
     _add_sync_run(db_session, "test-source", datetime(2026, 1, 3, tzinfo=timezone.utc))
 
     t3 = datetime(2026, 1, 4, tzinfo=timezone.utc)
-    closed = mark_missing_jobs(db_session, "test-source", set(), t3)
-    assert closed == 1
+    result = mark_missing_jobs(db_session, "test-source", set(), t3)
+    assert result.closed_count == 1
+    assert result.closed_titles == ["Test Job"]
 
     from app.models.jobs import Job
     job = db_session.query(Job).first()
@@ -68,5 +69,5 @@ def test_job_not_closed_if_seen_in_current_sync(db_session):
     _add_sync_run(db_session, "test-source", datetime(2026, 1, 2, tzinfo=timezone.utc))
     _add_sync_run(db_session, "test-source", datetime(2026, 1, 3, tzinfo=timezone.utc))
 
-    closed = mark_missing_jobs(db_session, "test-source", set(result.seen_ids), t1)
-    assert closed == 0
+    missing_result = mark_missing_jobs(db_session, "test-source", set(result.seen_ids), t1)
+    assert missing_result.closed_count == 0
