@@ -5,8 +5,7 @@ on:
     # Run daily at 6 AM ET (10:00 UTC)
     - cron: "0 10 * * *"
   push:
-    branches: [main, playwright-csod-scraper]
-  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
