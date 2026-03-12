@@ -95,12 +95,11 @@ def main():
         ("hvaps", HvapsEmailAdapter()),
     ]
 
-    # Sources that may legitimately have 0 jobs or fail on CI
-    # senate: 403s from GitHub Actions cloud IPs
+    # Sources that may legitimately have 0 jobs
     # csod_house_saa: no current openings
     # aoc_usajobs: skipped if no API key configured
     # hvaps: skipped if no GMAIL_APP_PASSWORD configured
-    allow_empty = {"senate", "csod_house_saa", "aoc_usajobs", "hvaps"}
+    allow_empty = {"csod_house_saa", "aoc_usajobs", "hvaps"}
 
     total = 0
     all_results: dict[str, list[dict]] = {}
