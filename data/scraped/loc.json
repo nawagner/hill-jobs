@@ -108,7 +108,7 @@
     "description_html": "<p>Availability: Applicants must be a current Congressional Research Service (CRS) employee serving in a permanent or indefinite position at the GS-11 or above. Duration: Depending on the qualifications of the applicant selected, this may be a temporary promotion, NTE 120 days or a detail with the possibility of an extension. More than one applicant may be selected to serve on a rotating basis. Tour\u2026</p>",
     "description_text": "Availability: Applicants must be a current Congressional Research Service (CRS) employee serving in a permanent or indefinite position at the GS-11 or above. Duration: Depending on the qualifications of the applicant selected, this may be a temporary promotion, NTE 120 days or a detail with the possibility of an extension. More than one applicant may be selected to serve on a rotating basis. Tour\u2026",
     "location_text": "Washington, DC",
-    "employment_type": "nte 120 days ( congressional research service staff only )",
+    "employment_type": "detail ( congressional research service staff only )",
     "posted_at": "2026-03-10T00:00:00Z",
     "closing_at": "2026-03-17T00:00:00Z",
     "salary_min": null,
@@ -197,6 +197,26 @@
     "raw_payload": {
       "source_url": "https://www.loc.gov/item/careers/equipment-specialist-electronic-vacancyvar003242/",
       "vacancy_id": "VAR003242"
+    }
+  },
+  {
+    "source_system": "loc-careers",
+    "source_organization": "Library of Congress",
+    "source_job_id": "VAR003245",
+    "source_url": "https://www.loc.gov/item/careers/motor-vehicle-operator-vacancyvar003245/",
+    "title": "Motor Vehicle Operator (GW-7)",
+    "description_html": "<p>This position is located in the Collections Maintenance and Stacks Management Section, Collections Management Division, Preservation Directorate, Discovery and Preservation Services (DPS) at the Cabin Branch location.This is a non-supervisory, bargaining unit position.The position description number for this position is 063841.The salary range reflects the locality pay adjustments for the Washington, D.C., Metro area.This position is not eligible for permanent remote telework.Relocation expenses will\u2026</p>",
+    "description_text": "This position is located in the Collections Maintenance and Stacks Management Section, Collections Management Division, Preservation Directorate, Discovery and Preservation Services (DPS) at the Cabin Branch location.This is a non-supervisory, bargaining unit position.The position description number for this position is 063841.The salary range reflects the locality pay adjustments for the Washington, D.C., Metro area.This position is not eligible for permanent remote telework.Relocation expenses will\u2026",
+    "location_text": "Washington, DC",
+    "employment_type": "permanent ( open to all )",
+    "posted_at": "2026-03-12T00:00:00Z",
+    "closing_at": "2026-04-13T00:00:00Z",
+    "salary_min": 29.02,
+    "salary_max": 33.82,
+    "salary_period": null,
+    "raw_payload": {
+      "source_url": "https://www.loc.gov/item/careers/motor-vehicle-operator-vacancyvar003245/",
+      "vacancy_id": "VAR003245"
     }
   },
   {

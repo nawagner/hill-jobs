@@ -337,7 +337,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "January 14, 2026",
-      "modified_time": 1773323178,
+      "modified_time": 1773324088,
       "display_logo": false
     }
   },
@@ -793,7 +793,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 3, 2026",
-      "modified_time": 1773321371,
+      "modified_time": 1773323870,
       "display_logo": false
     }
   },
@@ -1192,7 +1192,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 12, 2026",
-      "modified_time": 1773323572,
+      "modified_time": 1773324010,
       "display_logo": false
     }
   },
@@ -1306,7 +1306,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 12, 2026",
-      "modified_time": 1773322865,
+      "modified_time": 1773323911,
       "display_logo": false
     }
   },
@@ -1534,7 +1534,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 17, 2026",
-      "modified_time": 1773323658,
+      "modified_time": 1773324034,
       "display_logo": false
     }
   },
@@ -1705,7 +1705,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 18, 2026",
-      "modified_time": 1773323118,
+      "modified_time": 1773324005,
       "display_logo": false
     }
   },
@@ -2346,7 +2346,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 23, 2026",
-      "modified_time": 1773323284,
+      "modified_time": 1773323983,
       "display_logo": false
     }
   },
@@ -2531,7 +2531,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 24, 2026",
-      "modified_time": 1773322021,
+      "modified_time": 1773323934,
       "display_logo": false
     }
   },
@@ -2588,7 +2588,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 24, 2026",
-      "modified_time": 1773322809,
+      "modified_time": 1773323739,
       "display_logo": false
     }
   },
@@ -2646,63 +2646,6 @@
       "badge": null,
       "posted_date": "February 24, 2026",
       "modified_time": 1773319756,
-      "display_logo": false
-    }
-  },
-  {
-    "source_system": "senate-webscribble",
-    "source_organization": "Senate Sergeant at Arms",
-    "source_job_id": "651",
-    "source_url": "https://careers.employment.senate.gov/job/employment-office-specialist-66-washington-district-of-columbia-0651",
-    "title": "Employment Office Specialist #66",
-    "description_html": "<p>The Senate Sergeant at Arms is seeking an Employment Office Specialist. This role provides responsive and professional customer service to the Senate community and the public by posting jobs, respondi...</p>",
-    "description_text": "The Senate Sergeant at Arms is seeking an Employment Office Specialist. This role provides responsive and professional customer service to the Senate community and the public by posting jobs, respondi...",
-    "location_text": "Washington, District of Columbia",
-    "employment_type": null,
-    "posted_at": "2026-02-25T00:00:00Z",
-    "closing_at": null,
-    "salary_min": null,
-    "salary_max": null,
-    "salary_period": null,
-    "raw_payload": {
-      "id": 651,
-      "title": "Employment Office Specialist #66",
-      "location": "Washington, District of Columbia",
-      "coordinates": {
-        "latitude": "38.8951100",
-        "longitude": "-77.0363700"
-      },
-      "customBlockList": [
-        {
-          "path": "local_position_type",
-          "name": "front::jobs.additional_fields.position_type",
-          "enabled": 1,
-          "value": "Employment /<wbr> Jobs",
-          "label": "Position Type"
-        }
-      ],
-      "shortDescription": "The Senate Sergeant at Arms is seeking an Employment Office Specialist. This role provides responsive and professional customer service to the Senate community and the public by posting jobs, respondi...",
-      "isSponsored": false,
-      "isBackfilled": false,
-      "alreadySaved": false,
-      "canViewLocal": true,
-      "url": "https://careers.employment.senate.gov/job/employment-office-specialist-66-washington-district-of-columbia-0651",
-      "company": {
-        "id": 160,
-        "name": "Senate Sergeant at Arms",
-        "logo": "https://wjm.s3.amazonaws.com/useo/uploads/160_1730921899-100.png",
-        "url": "https://careers.employment.senate.gov/company/senate-sergeant-at-arms-0160",
-        "isFeatured": false
-      },
-      "omitted": {
-        "value": null,
-        "title": null
-      },
-      "cantSeeContent": false,
-      "epp": null,
-      "badge": null,
-      "posted_date": "February 25, 2026",
-      "modified_time": 1773323541,
       "display_logo": false
     }
   },
@@ -2880,7 +2823,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 25, 2026",
-      "modified_time": 1773323616,
+      "modified_time": 1773323685,
       "display_logo": false
     }
   },
@@ -3414,7 +3357,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 26, 2026",
-      "modified_time": 1773323453,
+      "modified_time": 1773323719,
       "display_logo": false
     }
   },
@@ -3528,7 +3471,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "February 26, 2026",
-      "modified_time": 1773323498,
+      "modified_time": 1773324115,
       "display_logo": false
     }
   },
@@ -3698,7 +3641,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 2, 2026",
-      "modified_time": 1773322020,
+      "modified_time": 1773324203,
       "display_logo": false
     }
   },
@@ -3812,7 +3755,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 2, 2026",
-      "modified_time": 1773322017,
+      "modified_time": 1773323682,
       "display_logo": false
     }
   },
@@ -3926,7 +3869,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 3, 2026",
-      "modified_time": 1773323163,
+      "modified_time": 1773324205,
       "display_logo": false
     }
   },
@@ -4154,7 +4097,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 4, 2026",
-      "modified_time": 1773323405,
+      "modified_time": 1773324180,
       "display_logo": false
     }
   },
@@ -4218,7 +4161,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 4, 2026",
-      "modified_time": 1773323162,
+      "modified_time": 1773324210,
       "display_logo": false
     }
   },
@@ -4275,7 +4218,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 4, 2026",
-      "modified_time": 1773323013,
+      "modified_time": 1773323907,
       "display_logo": false
     }
   },
@@ -4503,7 +4446,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 4, 2026",
-      "modified_time": 1773323380,
+      "modified_time": 1773324140,
       "display_logo": false
     }
   },
@@ -4560,7 +4503,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 4, 2026",
-      "modified_time": 1773321943,
+      "modified_time": 1773323803,
       "display_logo": false
     }
   },
@@ -4731,7 +4674,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 5, 2026",
-      "modified_time": 1773323520,
+      "modified_time": 1773323934,
       "display_logo": false
     }
   },
@@ -4909,7 +4852,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 6, 2026",
-      "modified_time": 1773323091,
+      "modified_time": 1773323680,
       "display_logo": false
     }
   },
@@ -4966,7 +4909,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 6, 2026",
-      "modified_time": 1773321795,
+      "modified_time": 1773324117,
       "display_logo": false
     }
   },
@@ -5030,7 +4973,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 6, 2026",
-      "modified_time": 1773323409,
+      "modified_time": 1773323908,
       "display_logo": false
     }
   },
@@ -5151,7 +5094,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 9, 2026",
-      "modified_time": 1773323013,
+      "modified_time": 1773324116,
       "display_logo": false
     }
   },
@@ -5215,7 +5158,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 9, 2026",
-      "modified_time": 1773323615,
+      "modified_time": 1773324180,
       "display_logo": false
     }
   },
@@ -5272,7 +5215,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 9, 2026",
-      "modified_time": 1773323566,
+      "modified_time": 1773323969,
       "display_logo": false
     }
   },
@@ -5329,7 +5272,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 9, 2026",
-      "modified_time": 1773323271,
+      "modified_time": 1773323871,
       "display_logo": false
     }
   },
@@ -5393,7 +5336,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 9, 2026",
-      "modified_time": 1773323332,
+      "modified_time": 1773323842,
       "display_logo": false
     }
   },
@@ -5571,7 +5514,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 10, 2026",
-      "modified_time": 1773322870,
+      "modified_time": 1773323827,
       "display_logo": false
     }
   },
@@ -5628,7 +5571,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 10, 2026",
-      "modified_time": 1773323306,
+      "modified_time": 1773324115,
       "display_logo": false
     }
   },
@@ -5685,7 +5628,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 10, 2026",
-      "modified_time": 1773323453,
+      "modified_time": 1773324116,
       "display_logo": false
     }
   },
@@ -5742,7 +5685,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 10, 2026",
-      "modified_time": 1773323622,
+      "modified_time": 1773324203,
       "display_logo": false
     }
   },
@@ -5799,7 +5742,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 11, 2026",
-      "modified_time": 1773323520,
+      "modified_time": 1773324114,
       "display_logo": false
     }
   },
@@ -5856,7 +5799,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 11, 2026",
-      "modified_time": 1773323578,
+      "modified_time": 1773324091,
       "display_logo": false
     }
   },
@@ -5970,7 +5913,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 11, 2026",
-      "modified_time": 1773323652,
+      "modified_time": 1773324207,
       "display_logo": false
     }
   },
@@ -6027,7 +5970,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 11, 2026",
-      "modified_time": 1773323091,
+      "modified_time": 1773323832,
       "display_logo": false
     }
   },
@@ -6084,7 +6027,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 11, 2026",
-      "modified_time": 1773323404,
+      "modified_time": 1773324115,
       "display_logo": false
     }
   },
@@ -6141,7 +6084,7 @@
       "epp": null,
       "badge": null,
       "posted_date": "March 11, 2026",
-      "modified_time": 1773323650,
+      "modified_time": 1773323736,
       "display_logo": false
     }
   }
