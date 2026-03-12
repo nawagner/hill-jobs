@@ -41,17 +41,7 @@ logger = logging.getLogger(__name__)
 
 def job_to_dict(job) -> dict:
     """Convert a SourceJob to a JSON-serializable dict."""
-    d = {}
-    for field in [
-        "source_system", "source_organization", "source_job_id", "source_url",
-        "title", "description_text", "location_text", "employment_type",
-        "salary_min", "salary_max", "salary_period",
-    ]:
-        d[field] = getattr(job, field, None)
-    for field in ["posted_at", "closing_at"]:
-        val = getattr(job, field, None)
-        d[field] = val.isoformat() if val else None
-    return d
+    return job.model_dump(mode="json")
 
 
 def print_detail(name: str, jobs: list[dict]):
