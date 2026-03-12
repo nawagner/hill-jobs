@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from sqlalchemy import select
@@ -7,12 +8,20 @@ from app.models.jobs import Job
 from app.models.sync_runs import SourceSyncRun
 
 
+@dataclass
+class MarkMissingResult:
+    closed_count: int = 0
+    closed_titles: list[str] = field(default_factory=list)
+
+
 def mark_missing_jobs(
     session: Session,
     source_system: str,
     seen_job_ids: set[int],
     now: datetime,
-) -> int:
+) -> MarkMissingResult:
+    result = MarkMissingResult()
+
     # Get the 2 most recent successful sync runs for this source
     recent_runs = (
         session.execute(
@@ -30,7 +39,7 @@ def mark_missing_jobs(
 
     # Need at least 2 successful syncs to close anything
     if len(recent_runs) < 2:
-        return 0
+        return result
 
     second_most_recent = recent_runs[-1]
 
@@ -46,16 +55,16 @@ def mark_missing_jobs(
         .all()
     )
 
-    closed_count = 0
     for job in open_jobs:
         if job.id in seen_job_ids:
             continue
         # Only close if last_seen_at is older than the 2nd most recent successful sync
         if job.last_seen_at and job.last_seen_at < second_most_recent.started_at:
             job.status = "closed"
-            closed_count += 1
+            result.closed_count += 1
+            result.closed_titles.append(job.title)
 
-    if closed_count:
+    if result.closed_count:
         session.commit()
 
-    return closed_count
+    return result

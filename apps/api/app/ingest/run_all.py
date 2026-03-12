@@ -44,7 +44,7 @@ def run_all_sources(
         try:
             source_jobs = adapter.fetch_jobs(http_client)
             upsert_result = upsert_jobs(session, source_jobs, now)
-            closed = mark_missing_jobs(
+            missing_result = mark_missing_jobs(
                 session, name, set(upsert_result.seen_ids), now
             )
 
@@ -53,7 +53,7 @@ def run_all_sources(
             sync_run.jobs_found = len(source_jobs)
             sync_run.jobs_created = upsert_result.created
             sync_run.jobs_updated = upsert_result.updated
-            sync_run.jobs_closed = closed
+            sync_run.jobs_closed = missing_result.closed_count
             session.commit()
 
             results[name] = SyncRunResult(
@@ -62,12 +62,13 @@ def run_all_sources(
                 created=upsert_result.created,
                 updated=upsert_result.updated,
                 skipped=upsert_result.skipped,
-                closed=closed,
+                closed=missing_result.closed_count,
             )
             logger.info(
                 "Source %s: found=%d created=%d updated=%d skipped=%d closed=%d",
                 name, len(source_jobs), upsert_result.created,
-                upsert_result.updated, upsert_result.skipped, closed,
+                upsert_result.updated, upsert_result.skipped,
+                missing_result.closed_count,
             )
         except Exception as e:
             logger.exception("Source %s failed: %s", name, e)

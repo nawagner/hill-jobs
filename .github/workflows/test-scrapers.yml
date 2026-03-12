@@ -57,6 +57,17 @@ jobs:
       - name: Post summary to job summary
         run: cat /tmp/scrape-summary.md >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Upsert scraped data to database
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          uv run python ../../scripts/upsert_scraped.py --input-dir ../../data/scraped | tee /tmp/upsert-summary.md
+
+      - name: Post upsert summary
+        run: cat /tmp/upsert-summary.md >> "$GITHUB_STEP_SUMMARY"
+
       - name: Commit scraped data
         run: |
           git config user.name "github-actions[bot]"

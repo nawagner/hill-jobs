@@ -55,7 +55,7 @@ def main() -> None:
             try:
                 source_jobs = adapter.fetch_jobs(client)
                 result = upsert_jobs(session, source_jobs, now)
-                closed = mark_missing_jobs(
+                missing_result = mark_missing_jobs(
                     session, name, set(result.seen_ids), now
                 )
 
@@ -64,13 +64,13 @@ def main() -> None:
                 sync_run.jobs_found = len(source_jobs)
                 sync_run.jobs_created = result.created
                 sync_run.jobs_updated = result.updated
-                sync_run.jobs_closed = closed
+                sync_run.jobs_closed = missing_result.closed_count
                 session.commit()
 
                 logger.info(
                     "%s: found=%d created=%d updated=%d closed=%d",
                     name, len(source_jobs), result.created,
-                    result.updated, closed,
+                    result.updated, missing_result.closed_count,
                 )
             except Exception as e:
                 logger.exception("%s failed: %s", name, e)
