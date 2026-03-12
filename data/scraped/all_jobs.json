@@ -1672,7 +1672,7 @@
     "title": "Research Librarian (Flexible Detail/Temporary Promotion) (GS-13)",
     "description_text": "Availability: Applicants must be a current Congressional Research Service (CRS) employee serving in a permanent or indefinite position at the GS-11 or above. Duration: Depending on the qualifications of the applicant selected, this may be a temporary promotion, NTE 120 days or a detail with the possibility of an extension. More than one applicant may be selected to serve on a rotating basis. Tour\u2026",
     "location_text": "Washington, DC",
-    "employment_type": "detail ( congressional research service staff only )",
+    "employment_type": "nte 120 days ( congressional research service staff only )",
     "salary_min": null,
     "salary_max": null,
     "salary_period": null,
@@ -3958,21 +3958,6 @@
     "salary_period": "hourly",
     "posted_at": "2026-01-26T00:00:00",
     "closing_at": "2026-07-26T23:59:59.997000"
-  },
-  {
-    "source_system": "aoc-usajobs",
-    "source_organization": "Architect of the Capitol",
-    "source_job_id": "USBG-2026-114",
-    "source_url": "https://www.usajobs.gov:443/job/857325300",
-    "title": "Gardener Advanced Helper (Part-time)",
-    "description_text": "This position is at the U.S. Botanic Garden (USBG). The USBG is a public garden in the legislative branch and was established by Congress in 1820. The Garden inspires people to appreciate, study, and conserve plants to enrich society locally and globally. We provide educational experiences to 1 million visitors annually, present horticultural displays and exhibits, strive to break down barriers to inclusion, and advance the exchange of ideas and information. Learn more: U.S. Botanic Garden.\n\n- This position is located in the United States Botanic Garden (USBG), Horticulture Division, Collections Section. The Gardener Advanced Helper will be responsible for daily care of accessioned plant collections and gardens that are of the highest horticultural quality. **This is a Permanent Part-time position. ** * This position is essential--Employee is required to report to work during emergencies and inclement weather situations* Tour of duty will be other than Monday through Friday and may include weekends, evenings and holidays on a regular and recurring basis. The position may be filled at the Gardener Helper WG-05 level or Gardener Helper WG-06 (Advanced) level. Developmental assignments will be given with the goal of attaining the full performance level. Duties quoted below are at the WG-06 level. Major Duties: Grows a wide variety of accessioned collection plants for display throughout the US Botanic Garden. Assists in managing, maintaining, developing and cultivating specialized plant group collections. Propagates and cultivates unusual plants, seeds and plant materials. Re-plants, divides, roots and prunes plant specimens to achieve and maintain optimum plant health. Performs propagation of the collection by division, cuttings, seeds and air layering at the appropriate time. Develops and maintains updated and accurate records including seasonal growing schedules. Assists in properly labeling and accessioning permanent plants. Works with the Botanist to maintain accurate and detailed accession records. Operates a motor vehicle when transporting plants and equipment to designated facilities. Records the date, plant name, accession number, quantity and plant destination. Assists in the installation of aesthetic and educational plant displays, which includes the layout and design of the display, selecting and labeling the plants and maintaining and rotating plants in the exhibit. Complies with and actively participates in USBG sustainability efforts including composting, recycling and energy reduction programs. Follows all relevant safety rules, regulations, and standard operating procedures; Utilizes knowledge of and must comply with all OSHA safety rules and regulations to ensure that work progresses in a safe manner; Provides or receives training, either on-the-job or through classroom training, to ensure that all safety practices and equipment are fully utilized; Uses required Personal Protective Equipment (PPE). *Applicants will be required to register for a DC pesticide applicators license within the first 30 days of their employment if they do not possess a license. To apply pesticides in the District of Columbia (D.C.), employee must possess a valid D.C. pesticide applicator's license in categories (3A) exterior ornamental plants, (3B) interior plant-scapes and/or (3C) turf grass, dependent upon the pesticides used.* IMPORTANT NOTE: Must possess and maintain a valid state driver's license. If the required licenses or registration are not obtained within the time periods specified, the employee will be terminated for failure to meet the conditions of continued employment.",
-    "location_text": "Washington, District of Columbia",
-    "employment_type": "WG",
-    "salary_min": 24.5,
-    "salary_max": 31.19,
-    "salary_period": "hourly",
-    "posted_at": "2026-02-11T10:54:08.053000",
-    "closing_at": "2026-03-11T23:59:59.997000"
   },
   {
     "source_system": "csod-house-cao",
