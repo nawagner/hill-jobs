@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   scrape:
@@ -68,14 +68,3 @@ jobs:
       - name: Post upsert summary
         run: cat /tmp/upsert-summary.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Commit scraped data
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/scraped/
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "chore: update scraped job data $(date -u +%Y-%m-%d)"
-            git push origin HEAD:${{ github.ref_name }}
-          fi
