@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timezone
 
 import httpx
@@ -102,16 +103,30 @@ def _extract_salary(item: dict) -> tuple[float | None, float | None, str | None]
     value_obj = base_salary.get("value", {})
     if not isinstance(value_obj, dict):
         return None, None, None
-    raw_val = value_obj.get("value", "")
+    raw_val = str(value_obj.get("value", "")).strip()
     if not raw_val:
         return None, None, None
-    numeric = float(str(raw_val).replace(",", ""))
+
     unit = value_obj.get("unitText", "")
-    if unit == "HOUR":
-        period = "hourly"
-    else:
-        period = "yearly"
-    return numeric, numeric, period
+    period = "hourly" if unit == "HOUR" else "yearly"
+
+    # Clean dollar signs, commas, whitespace
+    cleaned = raw_val.replace("$", "").replace(",", "").strip()
+    if not cleaned or cleaned.upper() == "N/A":
+        return None, None, None
+
+    # Handle range formats: "55000 - 65000", "60000-75000"
+    parts = re.split(r"\s*[-–—]\s*", cleaned)
+    try:
+        if len(parts) == 2:
+            sal_min = float(parts[0])
+            sal_max = float(parts[1])
+            return sal_min, sal_max, period
+        else:
+            numeric = float(parts[0])
+            return numeric, numeric, period
+    except ValueError:
+        return None, None, None
 
 
 def _parse_location(loc: dict) -> str | None:

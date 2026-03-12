@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Local CSOD ingest script.
+"""CSOD ingest script.
 
-Runs the CSOD adapters (House CAO and USCP) using agent-browser,
+Runs the CSOD adapters (House CAO and USCP) using Playwright,
 then upserts the jobs into the Railway Postgres database.
 
 Requires:
-  - agent-browser CLI installed (npm)
+  - playwright installed (pip) with browsers: playwright install chromium
   - DATABASE_URL env var pointing to Railway Postgres
 
 Usage:

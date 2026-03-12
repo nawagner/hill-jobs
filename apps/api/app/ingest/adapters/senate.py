@@ -1,11 +1,10 @@
 import logging
+import time
 from datetime import datetime, timezone
 
 import httpx
-from bs4 import BeautifulSoup
 
 from app.ingest.salary_parser import parse_salary_from_text
-from app.lib.fetch_html import fetch_page
 from app.schemas.ingest import SourceJob
 
 logger = logging.getLogger(__name__)
@@ -13,6 +12,11 @@ logger = logging.getLogger(__name__)
 BASE_URL = "https://careers.employment.senate.gov"
 API_URL = f"{BASE_URL}/api/v1/jobs"
 SOURCE_SYSTEM = "senate-webscribble"
+
+_BROWSER_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
 
 
 class SenateAdapter:
@@ -32,25 +36,30 @@ class SenateAdapter:
             if page >= last_page:
                 break
             page += 1
+            time.sleep(2.0)
 
         logger.info("Senate API: found %d job listings", len(all_items))
 
         jobs: list[SourceJob] = []
         for item in all_items:
             try:
-                job = _parse_api_job(item, client)
+                job = _parse_api_job(item)
                 jobs.append(job)
             except Exception:
                 logger.exception("Failed to parse Senate job: %s", item.get("url"))
         return jobs
 
     def _fetch_page(self, client: httpx.Client, page: int) -> dict:
-        resp = client.get(API_URL, params={"page": page, "per_page": 25})
+        resp = client.get(
+            API_URL,
+            params={"page": page, "per_page": 25},
+            headers={"User-Agent": _BROWSER_UA},
+        )
         resp.raise_for_status()
         return resp.json()
 
 
-def _parse_api_job(item: dict, client: httpx.Client) -> SourceJob:
+def _parse_api_job(item: dict) -> SourceJob:
     title = item.get("title", "")
     url = item.get("url", "")
     job_id = str(item.get("id", ""))
@@ -60,16 +69,9 @@ def _parse_api_job(item: dict, client: httpx.Client) -> SourceJob:
     organization = company.get("name", "U.S. Senate")
     posted_date = _parse_date(item.get("posted_date"))
 
-    # Fetch full description from detail page
-    desc_html = ""
+    # Use short description from API — skip detail page fetches to avoid IP bans
+    desc_html = f"<p>{short_desc}</p>"
     desc_text = short_desc
-    if url:
-        try:
-            html = fetch_page(client, url)
-            desc_html, desc_text = _extract_description(html)
-        except Exception:
-            logger.debug("Could not fetch detail for %s", url)
-            desc_html = f"<p>{short_desc}</p>"
 
     sal_min, sal_max, sal_period = _extract_salary(item)
 
@@ -98,14 +100,6 @@ def _extract_salary(item: dict) -> tuple[float | None, float | None, str | None]
                 return parsed.min_value, parsed.max_value, parsed.period
             break
     return None, None, None
-
-
-def _extract_description(html: str) -> tuple[str, str]:
-    soup = BeautifulSoup(html, "lxml")
-    desc_el = soup.select_one(".job-description")
-    if desc_el:
-        return str(desc_el), desc_el.get_text(separator=" ", strip=True)
-    return "", ""
 
 
 def parse_api_response(data: dict) -> list[dict]:
