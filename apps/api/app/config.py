@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     internal_ingest_token: str = ""
     usajobs_api_key: str | None = None
     usajobs_user_agent_email: str | None = None
+    resend_api_key: str = ""
+    site_base_url: str = "https://hill-jobs.org"
 
 
 @lru_cache

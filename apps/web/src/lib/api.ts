@@ -151,3 +151,70 @@ export function getEmployerDisplay(job: Pick<JobListItem, "source_system" | "sou
   const office = employer !== job.source_organization ? job.source_organization : null;
   return { employer, office };
 }
+
+// --- Subscribe / Newsletter API ---
+
+export interface SubscribeFilters {
+  q?: string;
+  role_kind?: string;
+  organization?: string;
+  party?: string;
+  state?: string;
+  committee?: string;
+  salary_min?: string;
+}
+
+export async function subscribe(email: string, filters: SubscribeFilters): Promise<{ message: string }> {
+  const res = await fetch("/api/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, filters }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail || `Subscribe failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function confirmSubscription(token: string): Promise<{ message: string }> {
+  const res = await fetch(`/api/subscribe/confirm/${encodeURIComponent(token)}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail || `Confirmation failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function getPreferences(token: string): Promise<{ email: string; filters: SubscribeFilters }> {
+  const res = await fetch(`/api/subscribe/preferences/${encodeURIComponent(token)}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail || `Failed to load preferences: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updatePreferences(token: string, filters: SubscribeFilters): Promise<{ message: string }> {
+  const res = await fetch(`/api/subscribe/preferences/${encodeURIComponent(token)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filters }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail || `Update failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function unsubscribe(token: string): Promise<{ message: string }> {
+  const res = await fetch(`/api/subscribe/unsubscribe/${encodeURIComponent(token)}`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail || `Unsubscribe failed: ${res.status}`);
+  }
+  return res.json();
+}
