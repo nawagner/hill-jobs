@@ -207,7 +207,15 @@ def hvaps_email_metadata():
 
 def test_hvaps_email_subject_format(hvaps_email_metadata):
     """Alert if the bulletin subject line changes."""
-    subj = hvaps_email_metadata["subject"]
+    from email.header import decode_header
+
+    raw_subj = hvaps_email_metadata["subject"]
+    # Decode MIME-encoded headers (e.g. =?US-ASCII?Q?...?=)
+    parts = decode_header(raw_subj)
+    subj = "".join(
+        part.decode(enc or "utf-8") if isinstance(part, bytes) else part
+        for part, enc in parts
+    )
     assert "Vacancy Announcement Bulletin" in subj, (
         f"HVAPS email subject changed — got: {subj!r}"
     )
