@@ -23,7 +23,8 @@ railway variable --service beneficial-beauty  # Manage env vars
 For ad-hoc queries, connect directly instead of going through the Railway CLI:
 ```bash
 # From apps/api/, using psycopg (no psycopg2):
-DATABASE_URL="postgresql+psycopg://postgres:FNNVduLGYpAjTaYiFueGMoUTtNPaXoNi@tramway.proxy.rlwy.net:43835/railway" \
+# Get the DATABASE_URL from Railway (never hardcode credentials):
+DATABASE_URL=$(railway variables --service Postgres --json 2>&1 | python3 -c "import sys,json; print(json.load(sys.stdin)['DATABASE_URL'])") \
   uv run python -c "
 from sqlalchemy import create_engine, text
 import os
