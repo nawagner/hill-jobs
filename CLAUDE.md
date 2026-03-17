@@ -18,6 +18,22 @@ railway logs --service beneficial-beauty    # View API logs
 railway variable --service beneficial-beauty  # Manage env vars
 ```
 
+### Direct database access
+
+For ad-hoc queries, connect directly instead of going through the Railway CLI:
+```bash
+# From apps/api/, using psycopg (no psycopg2):
+DATABASE_URL="postgresql+psycopg://postgres:FNNVduLGYpAjTaYiFueGMoUTtNPaXoNi@tramway.proxy.rlwy.net:43835/railway" \
+  uv run python -c "
+from sqlalchemy import create_engine, text
+import os
+engine = create_engine(os.environ['DATABASE_URL'])
+with engine.connect() as conn:
+    for r in conn.execute(text('SELECT id, title FROM jobs LIMIT 5')).fetchall():
+        print(r)
+"
+```
+
 ### Notes
 - `railway service` requires a service name in non-interactive mode
 - Use `--service <name>` flag or `--all` when no service is linked

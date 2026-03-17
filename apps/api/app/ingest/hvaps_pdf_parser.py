@@ -20,7 +20,7 @@ _SALARY_RANGE_PATTERN = re.compile(
 )
 
 # Patterns to identify the member/office from the introductory sentence
-_NAME_END = r"\s*(?:\(|seeks|is\s+(?:seeking|hiring)|has\s)"
+_NAME_END = r"\s*(?:\(|seeks|is\s+(?:seeking|hiring|accepting|now\s+accepting)|has\s|provides\s)"
 _MEMBER_PATTERNS = [
     # "The Office of Congresswoman Jane Doe (CA-10) seeks..."
     re.compile(
@@ -42,9 +42,27 @@ _MEMBER_PATTERNS = [
         rf"(?:The\s+)?Office\s+of\s+U\.?S\.?\s+(Representative\s+.+?){_NAME_END}",
         re.IGNORECASE,
     ),
-    # "Rep. Jane Doe (CA-10) seeks..."
+    # "Rep. Jane Doe (CA-10) seeks..." or "Rep. Jane Doe's office..."
     re.compile(
         rf"(Rep\.\s+[\w.\-' ]+?){_NAME_END}",
+        re.IGNORECASE,
+    ),
+    # Possessive: "Rep. Angie Craig's office..." or "Congressman John Doe's office..."
+    # Note: PDFs may use smart apostrophe (U+2019) or straight apostrophe
+    re.compile(
+        r"((?:Rep\.|Congress(?:woman|man)|Representative)\s+[\w.\-' ]+?)['\u2019]s\s+(?:office|D\.C\.|district)",
+        re.IGNORECASE,
+    ),
+    # "The Office of Representative Jane Doe, NY-25" (comma + district)
+    # or "Office of the Representative Joseph D. Morelle Rochester, NY"
+    # Use district pattern (XX-NN) after comma for clean extraction
+    re.compile(
+        r"(?:The\s+)?Office\s+of\s+(?:the\s+)?(?:U\.?S\.?\s+)?(Representative\s+[\w.\-' ]+?)\s*,\s*[A-Z]{2}-\d+",
+        re.IGNORECASE,
+    ),
+    # "The Democratic Staff of the House Committee on Veterans' Affairs seeks..."
+    re.compile(
+        r"(?:The\s+)?(\w+\s+Staff\s+of\s+the\s+(?:House\s+)?Committee\s+on\s+[\w\s''\u2019]+?)(?:\s+is\s|\s+seeks)",
         re.IGNORECASE,
     ),
 ]
@@ -87,6 +105,39 @@ _TITLE_PATTERNS = [
     # "... is seeking a Press Secretary ..."
     re.compile(
         r"is\s+seeking\s+(?:a|an)\s+(.+?)(?:\s+to\s|\s+for\s|\s+in\s|\.\s|\s*$)",
+        re.IGNORECASE,
+    ),
+    # "... seeks press and legislative interns for ..."
+    # "... is seeking full-time, energetic interns for ..."
+    re.compile(
+        r"(?:seeks|is\s+seeking)\s+(.+?intern\w*)(?:\s+for\s|\s+in\s|\.\s|\s*$)",
+        re.IGNORECASE,
+    ),
+    # "... is accepting applications for Summer 2026 legislative interns ..."
+    # "... is accepting applications for summer internships ..."
+    re.compile(
+        r"(?:is\s+)?(?:now\s+)?accepting\s+applications\s+for\s+(?:\w+\s+\d{4}\s+)?(.+?)(?:\s+in\s+(?:our|the|his|her|their)\s|\s+during\s|\.\s|\s*$)",
+        re.IGNORECASE,
+    ),
+    # "Summer internships in Rep. Name's office..." (title at start of listing)
+    re.compile(
+        r"^MEM-\d{3}-\d{2}\s+(.+?internship\w*)\s+in\s",
+        re.IGNORECASE,
+    ),
+    # "... will be accepting applications for an in-person internship ..."
+    re.compile(
+        r"(?:will\s+be\s+)?accepting\s+applications\s+for\s+(?:a|an)\s+(.+?)(?:\s+during\s|\.\s|\s*$)",
+        re.IGNORECASE,
+    ),
+    # "... provides seasonal internship opportunities ..."
+    re.compile(
+        r"provides\s+(.+?internship\s+opportunit\w*)",
+        re.IGNORECASE,
+    ),
+    # Broad fallback: if text mentions "internship" prominently, use "Internship"
+    # "In the Washington, D.C. office, internships run throughout the year..."
+    re.compile(
+        r"\b(internship\w*)\s+(?:run|program|opportunit)",
         re.IGNORECASE,
     ),
 ]
@@ -228,6 +279,15 @@ def _extract_title_from_heading(chunk: str) -> str | None:
         line2,
         re.IGNORECASE,
     ):
+        return None
+
+    # "Internship Opportunity: Office of ..." — extract "Internship Opportunity" as title
+    m_intern_heading = re.match(r"(Internship\s+Opportunity)\s*:", line2, re.IGNORECASE)
+    if m_intern_heading:
+        return m_intern_heading.group(1)
+
+    # Skip lines that are long prose descriptions (internship intros etc.)
+    if len(line2) > 80:
         return None
 
     # Format: "Title – Member Name (XX-00)" or "Title - Rep. Name (XX-00)"
