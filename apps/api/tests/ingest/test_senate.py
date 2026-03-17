@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
 
-from app.ingest.adapters.senate import parse_api_response, _parse_date, _extract_salary
+import httpx
+
+from app.ingest.adapters.senate import SenateAdapter, parse_api_response, _parse_date, _extract_salary
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "senate"
 
@@ -55,3 +57,50 @@ def test_extract_salary_from_custom_block():
 def test_extract_salary_missing():
     assert _extract_salary({}) == (None, None, None)
     assert _extract_salary({"customBlockList": []}) == (None, None, None)
+
+
+def test_fetch_jobs_uses_detail_description_from_wrapped_response(monkeypatch):
+    monkeypatch.setattr("app.ingest.adapters.senate.time.sleep", lambda _: None)
+
+    listing = {
+        "data": [
+            {
+                "id": 306,
+                "title": "Law Fellow",
+                "url": "https://careers.employment.senate.gov/job/law-fellow",
+                "location": "Washington, District of Columbia",
+                "shortDescription": "Short summary only",
+                "company": {"name": "Senator Adam B. Schiff"},
+                "posted_date": "October 21, 2025",
+                "customBlockList": [],
+            }
+        ],
+        "meta": {"last_page": 1},
+    }
+    detail = {
+        "data": {
+            "id": 306,
+            "description": (
+                "<p>First paragraph.</p>"
+                "<p>Second paragraph with <b>details</b>.</p>"
+            ),
+        }
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/jobs":
+            return httpx.Response(200, json=listing)
+        if request.url.path == "/api/v1/jobs/306":
+            return httpx.Response(200, json=detail)
+        raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    try:
+        jobs = SenateAdapter().fetch_jobs(client)
+    finally:
+        client.close()
+
+    assert len(jobs) == 1
+    assert jobs[0].description_html == detail["data"]["description"]
+    assert "Second paragraph with details." in jobs[0].description_text
+    assert jobs[0].description_text != "Short summary only"
