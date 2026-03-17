@@ -16,6 +16,7 @@ dependencies = [
   "pdfplumber",
   "playwright",
   "python-dotenv",
+  "email-validator",
 ]
 
 [dependency-groups]

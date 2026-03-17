@@ -1,6 +1,9 @@
 import { createBrowserRouter, RouterProvider, Outlet, Link } from "react-router";
 import { Home } from "./routes/home";
 import { JobDetail } from "./routes/job-detail";
+import { Subscribe } from "./routes/subscribe";
+import { SubscribeConfirm } from "./routes/subscribe-confirm";
+import { Preferences } from "./routes/preferences";
 
 function Layout() {
   return (
@@ -17,6 +20,9 @@ function Layout() {
           <nav className="hidden items-center gap-6 text-sm font-body text-navy-200 sm:flex">
             <Link to="/" className="transition-colors hover:text-white">
               Find Jobs
+            </Link>
+            <Link to="/subscribe" className="transition-colors hover:text-white">
+              Subscribe to Job Alerts
             </Link>
           </nav>
         </div>
@@ -66,6 +72,9 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <Home /> },
       { path: "/jobs/:slug", element: <JobDetail /> },
+      { path: "/subscribe", element: <Subscribe /> },
+      { path: "/subscribe/confirm/:token", element: <SubscribeConfirm /> },
+      { path: "/preferences/:token", element: <Preferences /> },
     ],
   },
 ]);
