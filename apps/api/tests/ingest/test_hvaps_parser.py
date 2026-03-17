@@ -7,6 +7,7 @@ from app.ingest.hvaps_pdf_parser import (
     _normalize_org_name,
     _parse_listing,
     _split_into_listings,
+    _strip_leading_qualifiers,
 )
 
 
@@ -429,3 +430,34 @@ def test_parse_listing_internship_opportunity_heading():
     assert result["source_job_id"] == "MEM-052-26"
     assert result["organization"] == "Rep. Joseph Morelle"
     assert result["title"] == "Internship Opportunity"
+
+
+# --- Qualifier stripping ---
+
+def test_strip_comma_separated_qualifiers():
+    """Comma-separated adjective lists should be stripped from titles."""
+    assert _strip_leading_qualifiers(
+        "organized, confident, collaborative, and experienced Legislative Director"
+    ) == "Legislative Director"
+
+
+def test_strip_single_qualifier():
+    assert _strip_leading_qualifiers("experienced Legislative Assistant") == "Legislative Assistant"
+
+
+def test_strip_no_qualifiers():
+    assert _strip_leading_qualifiers("Communications Director") == "Communications Director"
+
+
+def test_strip_qualifiers_preserves_compound_titles():
+    """Titles like 'Digital and Communications Director' should not be mangled."""
+    assert _strip_leading_qualifiers("Digital and Communications Director") == "Digital and Communications Director"
+
+
+def test_extract_title_seeks_with_comma_qualifiers():
+    """Full title extraction should strip comma-separated qualifiers."""
+    chunk = (
+        "Rep. David Scott (GA-13) seeks an organized, confident, collaborative, "
+        "and experienced Legislative Director for the Washington, DC office."
+    )
+    assert _extract_title(chunk) == "Legislative Director"

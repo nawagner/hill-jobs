@@ -231,9 +231,16 @@ def _find_cross_source_duplicate(session: Session, src: SourceJob) -> Job | None
     )
 
     for job in candidates:
+        candidate_title = _normalize_for_matching(job.title)
+        candidate_org = _normalize_for_matching(job.source_organization)
+        if candidate_org != normalized_org:
+            continue
+        # Exact match or one title contains the other (catches mangled titles
+        # where description text was prepended to the real title)
         if (
-            _normalize_for_matching(job.title) == normalized_title
-            and _normalize_for_matching(job.source_organization) == normalized_org
+            candidate_title == normalized_title
+            or candidate_title in normalized_title
+            or normalized_title in candidate_title
         ):
             return job
     return None
