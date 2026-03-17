@@ -12,6 +12,29 @@ import {
 } from "../lib/api";
 import { Filters } from "../components/filters";
 
+function resolveCommitteeSelection(
+  storedCommittee: string,
+  committees: CommitteeItem[],
+): { committee: string; subcommittee: string } {
+  if (!storedCommittee) {
+    return { committee: "", subcommittee: "" };
+  }
+
+  if (committees.some((committee) => committee.id === storedCommittee)) {
+    return { committee: storedCommittee, subcommittee: "" };
+  }
+
+  const parentCommittee = committees.find((committee) =>
+    committee.subcommittees.some((subcommittee) => subcommittee.id === storedCommittee),
+  );
+
+  if (parentCommittee) {
+    return { committee: parentCommittee.id, subcommittee: storedCommittee };
+  }
+
+  return { committee: storedCommittee, subcommittee: "" };
+}
+
 export function Preferences() {
   const { token } = useParams<{ token: string }>();
 
@@ -47,11 +70,16 @@ export function Preferences() {
       .then(([prefs, orgs, kinds, sts, cmts]) => {
         setEmail(prefs.email);
         const f = prefs.filters || {};
+        const { committee, subcommittee } = resolveCommitteeSelection(
+          f.committee || "",
+          cmts,
+        );
         setRoleKind(f.role_kind || "");
         setOrganization(f.organization || "");
         setParty(f.party || "");
         setState(f.state || "");
-        setCommittee(f.committee || "");
+        setCommittee(committee);
+        setSubcommittee(subcommittee);
         setSalary(f.salary_min || "");
         setOrganizations(orgs);
         setRoleKinds(kinds);

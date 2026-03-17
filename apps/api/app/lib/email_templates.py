@@ -72,7 +72,7 @@ def build_digest_html(
 
     jobs_html = "\n".join(job_rows)
     preferences_url = f"{site_base_url}/preferences/{unsubscribe_token}"
-    unsubscribe_url = f"{site_base_url}/unsubscribe/{unsubscribe_token}"
+    unsubscribe_url = preferences_url
 
     return f"""\
 <!DOCTYPE html>
