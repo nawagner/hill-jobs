@@ -22,7 +22,7 @@ function Layout() {
               Find Jobs
             </Link>
             <Link to="/subscribe" className="transition-colors hover:text-white">
-              Subscribe
+              Subscribe to Job Alerts
             </Link>
           </nav>
         </div>
