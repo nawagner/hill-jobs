@@ -266,3 +266,166 @@ Director for their Washington, D.C. office."""
 def test_parse_listing_no_mem_id():
     chunk = "This is not a valid listing"
     assert _parse_listing(chunk) is None
+
+
+# --- Internship listing parsing ---
+
+def test_extract_org_possessive():
+    """Possessive form: Rep. Name\u2019s office (smart apostrophe from PDF)."""
+    chunk = "MEM-080-26\nSummer internships in Rep. Angie Craig\u2019s office will be held in-person"
+    assert _extract_organization(chunk) == "Rep. Angie Craig"
+
+
+def test_extract_org_possessive_straight_apostrophe():
+    """Possessive form: Rep. Name's office (straight apostrophe)."""
+    chunk = "MEM-080-26\nSummer internships in Rep. Angie Craig's office will be held in-person"
+    assert _extract_organization(chunk) == "Rep. Angie Craig"
+
+
+def test_extract_org_is_accepting():
+    """'is accepting applications' should match as a name-ending phrase."""
+    chunk = "MEM-040-26\nThe Office of Representative Chrissy Houlahan (D-PA-06) is accepting applications"
+    assert _extract_organization(chunk) == "Rep. Chrissy Houlahan"
+
+
+def test_extract_org_provides():
+    """'provides seasonal internship' should match as a name-ending phrase."""
+    chunk = "The Office of Congresswoman Eleanor Holmes Norton provides seasonal internship opportunities"
+    assert _extract_organization(chunk) == "Rep. Eleanor Holmes Norton"
+
+
+def test_extract_org_committee_staff():
+    chunk = "MEM-057-26\nThe Democratic Staff of the House Committee on Veterans\u2019 Affairs seeks a press/digital intern"
+    assert _extract_organization(chunk) == "Democratic Staff of the House Committee on Veterans\u2019 Affairs"
+
+
+def test_extract_org_district_comma():
+    """Representative Name, XX-NN district format."""
+    chunk = "The District Office of Representative Joseph Morelle, NY-25 in Rochester, NY"
+    assert _extract_organization(chunk) == "Rep. Joseph Morelle"
+
+
+def test_extract_title_seeks_interns():
+    chunk = "Congressman Mike Levin (CA-49) seeks press and legislative interns for his Washington, D.C., office."
+    assert _extract_title(chunk) == "press and legislative interns"
+
+
+def test_extract_title_seeking_interns():
+    chunk = "The Democratic Staff of the House Committee on Veterans\u2019 Affairs seeks a press/digital intern for the Summer 2026 semester."
+    title = _extract_title(chunk)
+    assert title is not None
+    assert "intern" in title.lower()
+
+
+def test_extract_title_accepting_internships():
+    chunk = "The Office of Representative Chrissy Houlahan (D-PA-06) is accepting applications for Summer 2026 legislative interns in our West Chester office."
+    title = _extract_title(chunk)
+    assert title is not None
+    assert "intern" in title.lower()
+
+
+def test_extract_title_summer_internships():
+    chunk = "MEM-080-26\nSummer internships in Rep. Angie Craig\u2019s office will be held in-person in the Washington, D.C. office."
+    title = _extract_title(chunk)
+    assert title is not None
+    assert "internship" in title.lower()
+
+
+def test_extract_title_accepting_internship():
+    chunk = "The District Office of Representative Joseph Morelle, NY-25 in Rochester, NY, will be accepting applications for an in-person internship during the Summer Semester 2026."
+    title = _extract_title(chunk)
+    assert title is not None
+    assert "internship" in title.lower()
+
+
+def test_extract_title_provides_internship():
+    chunk = "The Office of Congresswoman Eleanor Holmes Norton provides seasonal internship opportunities to undergraduate and graduate students."
+    title = _extract_title(chunk)
+    assert title is not None
+    assert "internship" in title.lower()
+
+
+def test_extract_title_internship_fallback():
+    """Anonymous listing where internships are mentioned but no action verb pattern matches."""
+    chunk = "MEM-069-26\nIn the Washington, D.C. office, internships run throughout the year based on the semester calendar."
+    title = _extract_title(chunk)
+    assert title is not None
+    assert "internship" in title.lower()
+
+
+def test_heading_internship_opportunity():
+    """'Internship Opportunity: Office of ...' heading format."""
+    chunk = "MEM-052-26\nInternship Opportunity: Office of the Representative Joseph D. Morelle Rochester, NY"
+    assert _extract_title_from_heading(chunk) == "Internship Opportunity"
+
+
+def test_parse_listing_internship_accepting():
+    """Full parse of an internship listing using 'is accepting' phrasing (actual PDF text)."""
+    chunk = """MEM-048-26
+The office of Congressman Juan Ciscomani (AZ-06) is accepting applications for Summer
+2026 paid internships in our Washington D.C. Office.
+Ideal candidates are motivated, detail-oriented, and possess a strong work ethic."""
+
+    result = _parse_listing(chunk)
+    assert result is not None
+    assert result["source_job_id"] == "MEM-048-26"
+    assert result["organization"] == "Rep. Juan Ciscomani"
+    assert "intern" in result["title"].lower()
+
+
+def test_parse_listing_internship_possessive():
+    """Full parse of internship with possessive Rep. Name\u2019s office (actual PDF text)."""
+    chunk = "MEM-080-26\nSummer internships in Rep. Angie Craig\u2019s office will be held in-person in the Washington,\nD.C. office. The D.C. internship will run approximately from May 26th, 2026, through Early\nAugust, with some room for flexibility.\nLocation: Washington, D.C."
+
+    result = _parse_listing(chunk)
+    assert result is not None
+    assert result["source_job_id"] == "MEM-080-26"
+    assert result["organization"] == "Rep. Angie Craig"
+    assert "internship" in result["title"].lower()
+
+
+def test_parse_listing_internship_seeks_interns():
+    """Full parse of internship with 'seeks interns' phrasing."""
+    chunk = """MEM-032-26
+Congressman Mike Levin (CA-49) seeks press and legislative interns for his Washington,
+D.C., office for the Summer 2026 term.
+Location: Washington, D.C."""
+
+    result = _parse_listing(chunk)
+    assert result is not None
+    assert result["source_job_id"] == "MEM-032-26"
+    assert result["organization"] == "Rep. Mike Levin"
+    assert "intern" in result["title"].lower()
+
+
+def test_parse_listing_committee_internship():
+    """Committee staff internship listing (actual PDF text)."""
+    chunk = "MEM-057-26\nThe Democratic Staff of the House Committee on Veterans\u2019 Affairs seeks a press/digital\nintern for the Summer 2026 semester. Responsibilities include, but are not limited to:\n\u2022 Compiling and distributing morning press clips,"
+
+    result = _parse_listing(chunk)
+    assert result is not None
+    assert result["source_job_id"] == "MEM-057-26"
+    assert "Committee on Veterans" in result["organization"]
+    assert "intern" in result["title"].lower()
+
+
+def test_parse_listing_provides_internship():
+    """Listing using 'provides internship opportunities' phrasing (actual PDF text)."""
+    chunk = "MEM-077-26\nThe Office of Congresswoman Eleanor Holmes Norton provides seasonal internship\nopportunities to undergraduate and graduate students interested in gaining congressional\nwork experience in her Capitol Hill Office and in her District Office."
+
+    result = _parse_listing(chunk)
+    assert result is not None
+    assert result["source_job_id"] == "MEM-077-26"
+    assert result["organization"] == "Rep. Eleanor Holmes Norton"
+    assert "internship" in result["title"].lower()
+
+
+def test_parse_listing_internship_opportunity_heading():
+    """Listing with 'Internship Opportunity:' heading (actual PDF text)."""
+    chunk = "MEM-052-26\nInternship Opportunity: Office of the Representative Joseph D. Morelle Rochester, NY\nThe District Office of Representative Joseph Morelle, NY-25 in Rochester, NY, will be\naccepting applications for an in-person internship during the Summer Semester 2026."
+
+    result = _parse_listing(chunk)
+    assert result is not None
+    assert result["source_job_id"] == "MEM-052-26"
+    assert result["organization"] == "Rep. Joseph Morelle"
+    assert result["title"] == "Internship Opportunity"
