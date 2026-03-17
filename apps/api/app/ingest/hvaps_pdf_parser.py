@@ -316,20 +316,39 @@ def _extract_title(chunk: str) -> str | None:
             title = m.group(1).strip()
             # Clean up common trailing artifacts
             title = re.sub(r"\s+(?:who|that|which)\s.*$", "", title, flags=re.IGNORECASE)
-            # Strip leading adjectives/qualifiers that aren't part of the title
-            _ADJ_RE = re.compile(
-                r"^(?:experienced|innovative|creative|dynamic|motivated|dedicated|"
-                r"detail[\s-]oriented|organized|strategic|seasoned|talented|qualified|"
-                r"highly\s+\w+|full[\s-]time|part[\s-]time|and\s+\w+)\s+",
-                re.IGNORECASE,
-            )
-            while _ADJ_RE.match(title):
-                title = _ADJ_RE.sub("", title, count=1)
+            title = _strip_leading_qualifiers(title)
             # Remove trailing punctuation
             title = title.rstrip(".,;:")
             if 3 <= len(title) <= 100:
                 return title
     return None
+
+
+_ADJ_RE = re.compile(
+    r"^(?:experienced|innovative|creative|dynamic|motivated|dedicated|"
+    r"detail[\s-]oriented|organized|strategic|seasoned|talented|qualified|"
+    r"highly\s+\w+|full[\s-]time|part[\s-]time|and\s+\w+)[,;\s]+",
+    re.IGNORECASE,
+)
+
+
+def _strip_leading_qualifiers(title: str) -> str:
+    """Strip leading adjective lists from an extracted title.
+
+    Handles both space-separated ("experienced Legislative Director") and
+    comma-separated ("organized, confident, and experienced Legislative Director").
+    """
+    # First, strip comma-separated lowercase qualifier lists that precede
+    # a capitalized title, e.g. "organized, confident, collaborative, and
+    # experienced Legislative Director" → "Legislative Director"
+    title = re.sub(
+        r"^(?:[a-z][\w-]*(?:\s+[a-z][\w-]*)?,\s+)+(?:and\s+)?[a-z][\w-]*(?:\s+[a-z][\w-]*)?\s+",
+        "", title,
+    )
+    # Then strip any remaining individual leading adjectives
+    while _ADJ_RE.match(title):
+        title = _ADJ_RE.sub("", title, count=1)
+    return title
 
 
 def _extract_title_from_lines(chunk: str, mem_id: str) -> str | None:
