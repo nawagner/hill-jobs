@@ -57,17 +57,28 @@ class SenateAdapter:
         job_id = item.get("id")
         desc_html = ""
         if job_id:
-            try:
-                time.sleep(1.0)
-                resp = client.get(
-                    f"{DETAIL_URL}/{job_id}",
-                    headers={"User-Agent": _BROWSER_UA},
-                )
-                resp.raise_for_status()
-                detail = resp.json().get("data", {})
-                desc_html = detail.get("description", "")
-            except Exception:
-                logger.warning("Failed to fetch detail for job %s, using short description", job_id)
+            max_retries = 3
+            for attempt in range(max_retries + 1):
+                try:
+                    time.sleep(1.0)
+                    resp = client.get(
+                        f"{DETAIL_URL}/{job_id}",
+                        headers={"User-Agent": _BROWSER_UA},
+                    )
+                    if resp.status_code == 429:
+                        backoff = 5 * (2 ** attempt)  # 5s, 10s, 20s, 40s
+                        logger.warning("Rate limited on job %s, backing off %ds (attempt %d/%d)", job_id, backoff, attempt + 1, max_retries + 1)
+                        time.sleep(backoff)
+                        continue
+                    resp.raise_for_status()
+                    detail = resp.json().get("data", {})
+                    desc_html = detail.get("description", "")
+                    break
+                except httpx.HTTPStatusError:
+                    raise
+                except Exception:
+                    logger.warning("Failed to fetch detail for job %s, using short description", job_id)
+                    break
 
         return _parse_api_job(item, desc_html)
 
