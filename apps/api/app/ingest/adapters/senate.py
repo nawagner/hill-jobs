@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from datetime import datetime, timezone
 
@@ -11,12 +12,15 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://careers.employment.senate.gov"
 API_URL = f"{BASE_URL}/api/v1/jobs"
+DETAIL_URL = f"{BASE_URL}/api/v1/jobs"  # + /{id}
 SOURCE_SYSTEM = "senate-webscribble"
 
 _BROWSER_UA = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 )
+
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
 
 
 class SenateAdapter:
@@ -43,11 +47,29 @@ class SenateAdapter:
         jobs: list[SourceJob] = []
         for item in all_items:
             try:
-                job = _parse_api_job(item)
+                job = self._parse_with_detail(client, item)
                 jobs.append(job)
             except Exception:
                 logger.exception("Failed to parse Senate job: %s", item.get("url"))
         return jobs
+
+    def _parse_with_detail(self, client: httpx.Client, item: dict) -> SourceJob:
+        job_id = item.get("id")
+        desc_html = ""
+        if job_id:
+            try:
+                time.sleep(1.0)
+                resp = client.get(
+                    f"{DETAIL_URL}/{job_id}",
+                    headers={"User-Agent": _BROWSER_UA},
+                )
+                resp.raise_for_status()
+                detail = resp.json().get("data", {})
+                desc_html = detail.get("description", "")
+            except Exception:
+                logger.warning("Failed to fetch detail for job %s, using short description", job_id)
+
+        return _parse_api_job(item, desc_html)
 
     def _fetch_page(self, client: httpx.Client, page: int) -> dict:
         resp = client.get(
@@ -59,7 +81,7 @@ class SenateAdapter:
         return resp.json()
 
 
-def _parse_api_job(item: dict) -> SourceJob:
+def _parse_api_job(item: dict, detail_html: str = "") -> SourceJob:
     title = item.get("title", "")
     url = item.get("url", "")
     job_id = str(item.get("id", ""))
@@ -69,9 +91,12 @@ def _parse_api_job(item: dict) -> SourceJob:
     organization = company.get("name", "U.S. Senate")
     posted_date = _parse_date(item.get("posted_date"))
 
-    # Use short description from API — skip detail page fetches to avoid IP bans
-    desc_html = f"<p>{short_desc}</p>"
-    desc_text = short_desc
+    if detail_html:
+        desc_html = detail_html
+        desc_text = _strip_html(detail_html)
+    else:
+        desc_html = f"<p>{short_desc}</p>"
+        desc_text = short_desc
 
     sal_min, sal_max, sal_period = _extract_salary(item)
 
@@ -90,6 +115,11 @@ def _parse_api_job(item: dict) -> SourceJob:
         salary_period=sal_period,
         raw_payload=item,
     )
+
+
+def _strip_html(html: str) -> str:
+    text = _HTML_TAG_RE.sub("", html)
+    return " ".join(text.split())
 
 
 def _extract_salary(item: dict) -> tuple[float | None, float | None, str | None]:
