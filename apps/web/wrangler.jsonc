@@ -13,6 +13,10 @@
   "vars": {
     "API_BASE_URL": "https://beneficial-beauty-production.up.railway.app"
   },
+  "routes": [
+    { "pattern": "hill-jobs.org", "custom_domain": true },
+    { "pattern": "www.hill-jobs.org", "custom_domain": true }
+  ],
   "observability": {
     "enabled": false,
     "head_sampling_rate": 1,
