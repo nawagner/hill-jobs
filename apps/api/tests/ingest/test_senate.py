@@ -59,8 +59,13 @@ def test_extract_salary_missing():
     assert _extract_salary({"customBlockList": []}) == (None, None, None)
 
 
-def test_fetch_jobs_uses_detail_description_from_wrapped_response(monkeypatch):
+def test_fetch_jobs_uses_detail_description_from_playwright(monkeypatch):
     monkeypatch.setattr("app.ingest.adapters.senate.time.sleep", lambda _: None)
+
+    detail_html = (
+        "<p>First paragraph.</p>"
+        "<p>Second paragraph with <b>details</b>.</p>"
+    )
 
     listing = {
         "data": [
@@ -77,22 +82,17 @@ def test_fetch_jobs_uses_detail_description_from_wrapped_response(monkeypatch):
         ],
         "meta": {"last_page": 1},
     }
-    detail = {
-        "data": {
-            "id": 306,
-            "description": (
-                "<p>First paragraph.</p>"
-                "<p>Second paragraph with <b>details</b>.</p>"
-            ),
-        }
-    }
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/api/v1/jobs":
             return httpx.Response(200, json=listing)
-        if request.url.path == "/api/v1/jobs/306":
-            return httpx.Response(200, json=detail)
         raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+    # Mock Playwright to return the detail HTML directly
+    monkeypatch.setattr(
+        "app.ingest.adapters.senate._fetch_detail_playwright",
+        lambda browser, job_id: detail_html,
+    )
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
     try:
@@ -101,6 +101,6 @@ def test_fetch_jobs_uses_detail_description_from_wrapped_response(monkeypatch):
         client.close()
 
     assert len(jobs) == 1
-    assert jobs[0].description_html == detail["data"]["description"]
+    assert jobs[0].description_html == detail_html
     assert "Second paragraph with details." in jobs[0].description_text
     assert jobs[0].description_text != "Short summary only"

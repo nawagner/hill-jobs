@@ -1,9 +1,11 @@
+import json
 import logging
 import re
 import time
 from datetime import datetime, timezone
 
 import httpx
+from playwright.sync_api import sync_playwright, Browser
 
 from app.ingest.salary_parser import parse_salary_from_text
 from app.schemas.ingest import SourceJob
@@ -21,6 +23,25 @@ _BROWSER_UA = (
 )
 
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _fetch_detail_playwright(browser: Browser, job_id: int) -> str:
+    """Fetch a Senate job detail page using Playwright to bypass 403s."""
+    url = f"{DETAIL_URL}/{job_id}"
+    page = browser.new_page()
+    try:
+        resp = page.goto(url, wait_until="domcontentloaded", timeout=15_000)
+        if resp and resp.ok:
+            body = page.inner_text("body")
+            data = json.loads(body)
+            return data.get("data", {}).get("description", "")
+        logger.warning("Playwright got status %s for job %s", resp.status if resp else "none", job_id)
+        return ""
+    except Exception:
+        logger.warning("Playwright failed to fetch detail for job %s", job_id, exc_info=True)
+        return ""
+    finally:
+        page.close()
 
 
 class SenateAdapter:
@@ -45,40 +66,27 @@ class SenateAdapter:
         logger.info("Senate API: found %d job listings", len(all_items))
 
         jobs: list[SourceJob] = []
-        for item in all_items:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True)
             try:
-                job = self._parse_with_detail(client, item)
-                jobs.append(job)
-            except Exception:
-                logger.exception("Failed to parse Senate job: %s", item.get("url"))
+                for item in all_items:
+                    try:
+                        job = self._parse_with_detail(browser, item)
+                        jobs.append(job)
+                    except Exception:
+                        logger.exception("Failed to parse Senate job: %s", item.get("url"))
+            finally:
+                browser.close()
         return jobs
 
-    def _parse_with_detail(self, client: httpx.Client, item: dict) -> SourceJob:
+    def _parse_with_detail(self, browser: Browser, item: dict) -> SourceJob:
         job_id = item.get("id")
         desc_html = ""
         if job_id:
-            max_retries = 3
-            for attempt in range(max_retries + 1):
-                try:
-                    time.sleep(1.0)
-                    resp = client.get(
-                        f"{DETAIL_URL}/{job_id}",
-                        headers={"User-Agent": _BROWSER_UA},
-                    )
-                    if resp.status_code == 429:
-                        backoff = 5 * (2 ** attempt)  # 5s, 10s, 20s, 40s
-                        logger.warning("Rate limited on job %s, backing off %ds (attempt %d/%d)", job_id, backoff, attempt + 1, max_retries + 1)
-                        time.sleep(backoff)
-                        continue
-                    resp.raise_for_status()
-                    detail = resp.json().get("data", {})
-                    desc_html = detail.get("description", "")
-                    break
-                except httpx.HTTPStatusError:
-                    raise
-                except Exception:
-                    logger.warning("Failed to fetch detail for job %s, using short description", job_id)
-                    break
+            time.sleep(1.0)
+            desc_html = _fetch_detail_playwright(browser, job_id)
+            if not desc_html:
+                logger.warning("No detail for job %s, using short description", job_id)
 
         return _parse_api_job(item, desc_html)
 
