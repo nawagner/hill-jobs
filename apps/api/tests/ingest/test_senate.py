@@ -59,7 +59,7 @@ def test_extract_salary_missing():
     assert _extract_salary({"customBlockList": []}) == (None, None, None)
 
 
-def test_fetch_jobs_uses_detail_description_from_playwright(monkeypatch):
+def test_fetch_jobs_uses_detail_description_from_api(monkeypatch):
     monkeypatch.setattr("app.ingest.adapters.senate.time.sleep", lambda _: None)
 
     detail_html = (
@@ -86,13 +86,9 @@ def test_fetch_jobs_uses_detail_description_from_playwright(monkeypatch):
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/api/v1/jobs":
             return httpx.Response(200, json=listing)
+        if request.url.path == "/api/v1/jobs/306":
+            return httpx.Response(200, json={"data": {"description": detail_html}})
         raise AssertionError(f"Unexpected request: {request.method} {request.url}")
-
-    # Mock Playwright to return the detail HTML directly
-    monkeypatch.setattr(
-        "app.ingest.adapters.senate._fetch_detail_playwright",
-        lambda browser, job_id: detail_html,
-    )
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
     try:
@@ -104,3 +100,48 @@ def test_fetch_jobs_uses_detail_description_from_playwright(monkeypatch):
     assert jobs[0].description_html == detail_html
     assert "Second paragraph with details." in jobs[0].description_text
     assert jobs[0].description_text != "Short summary only"
+
+
+def test_fetch_jobs_retries_on_429_and_403(monkeypatch):
+    monkeypatch.setattr("app.ingest.adapters.senate.time.sleep", lambda _: None)
+
+    detail_html = "<p>Full description.</p>"
+    call_count = {"value": 0}
+
+    listing = {
+        "data": [
+            {
+                "id": 99,
+                "title": "Test Job",
+                "url": "https://careers.employment.senate.gov/job/test",
+                "location": "Washington, DC",
+                "shortDescription": "Short",
+                "company": {"name": "Senate Office"},
+                "posted_date": "March 1, 2026",
+                "customBlockList": [],
+            }
+        ],
+        "meta": {"last_page": 1},
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/jobs":
+            return httpx.Response(200, json=listing)
+        if request.url.path == "/api/v1/jobs/99":
+            call_count["value"] += 1
+            if call_count["value"] == 1:
+                return httpx.Response(429)
+            if call_count["value"] == 2:
+                return httpx.Response(403)
+            return httpx.Response(200, json={"data": {"description": detail_html}})
+        raise AssertionError(f"Unexpected: {request.url}")
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    try:
+        jobs = SenateAdapter().fetch_jobs(client)
+    finally:
+        client.close()
+
+    assert len(jobs) == 1
+    assert jobs[0].description_html == detail_html
+    assert call_count["value"] == 3
