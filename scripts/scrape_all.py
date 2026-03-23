@@ -25,6 +25,8 @@ from app.ingest.adapters.senate import SenateAdapter
 from app.ingest.adapters.loc import LocAdapter
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
 from app.ingest.adapters.aoc_usajobs import AocUsajobsAdapter
+from app.ingest.adapters.cbo_bizmerlin import CboBizmerlinAdapter
+from app.ingest.adapters.usajobs import UsajobsAdapter, GAO_CONFIG, GPO_CONFIG
 from app.ingest.adapters.csod import (
     CsodAdapter,
     HOUSE_CAO_CONFIG,
@@ -77,6 +79,9 @@ def main():
         ("loc", LocAdapter()),
         ("house_dems_resumebank", HouseDemsResumebankAdapter()),
         ("aoc_usajobs", AocUsajobsAdapter(api_key=usajobs_api_key, user_agent_email=usajobs_email)),
+        ("gao_usajobs", UsajobsAdapter(GAO_CONFIG, api_key=usajobs_api_key, user_agent_email=usajobs_email)),
+        ("gpo_usajobs", UsajobsAdapter(GPO_CONFIG, api_key=usajobs_api_key, user_agent_email=usajobs_email)),
+        ("cbo_bizmerlin", CboBizmerlinAdapter()),
         ("csod_house_cao", CsodAdapter(HOUSE_CAO_CONFIG)),
         ("csod_house_clerk", CsodAdapter(HOUSE_CLERK_CONFIG)),
         ("csod_house_saa", CsodAdapter(HOUSE_SAA_CONFIG)),
@@ -89,7 +94,7 @@ def main():
     # csod_house_saa: no current openings
     # aoc_usajobs: skipped if no API key configured
     # hvaps: skipped if no GMAIL_APP_PASSWORD configured
-    allow_empty = {"csod_house_saa", "aoc_usajobs", "hvaps"}
+    allow_empty = {"csod_house_saa", "aoc_usajobs", "gao_usajobs", "gpo_usajobs", "cbo_bizmerlin", "hvaps"}
 
     total = 0
     all_results: dict[str, list[dict]] = {}

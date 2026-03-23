@@ -13,9 +13,11 @@ from sqlalchemy.orm import sessionmaker
 from app.config import Settings
 from app.db import get_engine
 from app.ingest.adapters.aoc_usajobs import AocUsajobsAdapter
+from app.ingest.adapters.cbo_bizmerlin import CboBizmerlinAdapter
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
 from app.ingest.adapters.loc import LocAdapter
 from app.ingest.adapters.senate import SenateAdapter
+from app.ingest.adapters.usajobs import UsajobsAdapter, GAO_CONFIG, GPO_CONFIG
 from app.ingest.run_all import run_all_sources
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -29,10 +31,15 @@ def build_registry(settings: Settings):
         "house-dems-resumebank": HouseDemsResumebankAdapter(),
     }
     if settings.usajobs_api_key:
-        registry["aoc-usajobs"] = AocUsajobsAdapter(
+        uj_kwargs = dict(
             api_key=settings.usajobs_api_key,
             user_agent_email=settings.usajobs_user_agent_email or "",
         )
+        registry["aoc-usajobs"] = AocUsajobsAdapter(**uj_kwargs)
+        registry["gao-usajobs"] = UsajobsAdapter(GAO_CONFIG, **uj_kwargs)
+        registry["gpo-usajobs"] = UsajobsAdapter(GPO_CONFIG, **uj_kwargs)
+
+    registry["cbo-bizmerlin"] = CboBizmerlinAdapter()
     return registry
 
 

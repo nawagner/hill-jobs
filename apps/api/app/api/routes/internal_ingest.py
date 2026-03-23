@@ -9,10 +9,12 @@ from app.api.deps import verify_internal_token
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.ingest.adapters.aoc_usajobs import AocUsajobsAdapter
+from app.ingest.adapters.cbo_bizmerlin import CboBizmerlinAdapter
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
 from app.ingest.adapters.hvaps import parse_hvaps_source_jobs
 from app.ingest.adapters.loc import LocAdapter
 from app.ingest.adapters.senate import SenateAdapter
+from app.ingest.adapters.usajobs import UsajobsAdapter, GAO_CONFIG, GPO_CONFIG
 from app.ingest.mark_missing_jobs import mark_missing_jobs
 from app.ingest.run_all import run_all_sources
 from app.ingest.source_registry import SourceAdapter
@@ -33,10 +35,15 @@ def build_registry(settings: Settings) -> dict[str, SourceAdapter]:
         "house-dems-resumebank": HouseDemsResumebankAdapter(),
     }
     if settings.usajobs_api_key:
-        registry["aoc-usajobs"] = AocUsajobsAdapter(
+        uj_kwargs = dict(
             api_key=settings.usajobs_api_key,
             user_agent_email=settings.usajobs_user_agent_email or "",
         )
+        registry["aoc-usajobs"] = AocUsajobsAdapter(**uj_kwargs)
+        registry["gao-usajobs"] = UsajobsAdapter(GAO_CONFIG, **uj_kwargs)
+        registry["gpo-usajobs"] = UsajobsAdapter(GPO_CONFIG, **uj_kwargs)
+
+    registry["cbo-bizmerlin"] = CboBizmerlinAdapter()
     return registry
 
 
