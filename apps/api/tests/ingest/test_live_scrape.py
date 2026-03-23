@@ -10,6 +10,7 @@ import httpx
 from app.ingest.adapters.senate import SenateAdapter
 from app.ingest.adapters.loc import LocAdapter
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
+from app.ingest.adapters.cbo_bizmerlin import CboBizmerlinAdapter
 from app.ingest.adapters.csod import CsodAdapter, HOUSE_CAO_CONFIG, USCP_CONFIG
 from app.ingest.adapters.hvaps_email import HvapsEmailAdapter
 
@@ -88,6 +89,27 @@ def test_house_dems_fields(house_dems_jobs):
     assert job.title
     assert job.source_job_id
     assert job.source_system == "house-dems-resumebank"
+
+
+# ── CBO BizMerlin ─────────────────────────────────────────────────────
+
+
+@pytest.fixture(scope="module")
+def cbo_jobs(http_client):
+    return CboBizmerlinAdapter().fetch_jobs(http_client)
+
+
+def test_cbo_got_jobs(cbo_jobs):
+    assert len(cbo_jobs) > 0, "CBO BizMerlin returned no jobs"
+
+
+def test_cbo_fields(cbo_jobs):
+    job = cbo_jobs[0]
+    assert job.title
+    assert job.source_job_id
+    assert job.source_url
+    assert job.source_system == "cbo-bizmerlin"
+    assert job.source_organization == "Congressional Budget Office"
 
 
 # ── CSOD House CAO ─────────────────────────────────────────────────────
