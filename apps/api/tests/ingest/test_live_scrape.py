@@ -100,12 +100,10 @@ def cbo_jobs(http_client):
 
 
 def test_cbo_got_jobs(cbo_jobs):
-    assert len(cbo_jobs) >= 0, "CBO BizMerlin returned an error"
+    assert len(cbo_jobs) > 0, "CBO BizMerlin returned no jobs"
 
 
 def test_cbo_fields(cbo_jobs):
-    if not cbo_jobs:
-        pytest.skip("No CBO jobs currently posted")
     job = cbo_jobs[0]
     assert job.title
     assert job.source_job_id
