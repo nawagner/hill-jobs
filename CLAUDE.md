@@ -81,9 +81,16 @@ curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/i
 | `HouseDemsResumebankAdapter` | `house-dems-resumebank` | REST API (domewatch.us) | Railway |
 | `SenateAdapter` | `senate-webscribble` | REST API | Railway |
 | `LocAdapter` | `loc-careers` | Web scraping | Railway |
-| `AocUsajobsAdapter` | `aoc-usajobs` | USAJobs API (needs key) | Railway |
+| `UsajobsAdapter` (AOC) | `aoc-usajobs` | USAJobs API (needs key) | Railway |
+| `UsajobsAdapter` (GAO) | `gao-usajobs` | USAJobs API (needs key) | Railway |
+| `UsajobsAdapter` (GPO) | `gpo-usajobs` | USAJobs API (needs key) | Railway |
+| `CboBizmerlinAdapter` | `cbo-bizmerlin` | REST API (bizmerlin.net) | Railway |
 | `CsodAdapter` | `csod-house-cao`, `csod-uscp` | agent-browser | Local only |
 | HVAPS endpoint | `house-hvaps` | PDF parsing (manual URL trigger) | Railway |
+
+## Changelog
+
+Update `CHANGELOG.md` at the repo root when making major changes (new adapters, new features, breaking changes, significant bug fixes). Keep entries concise.
 
 ## Running Tests
 
