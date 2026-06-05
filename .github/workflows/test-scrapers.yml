@@ -42,7 +42,16 @@ jobs:
         env:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          CSOD_DEBUG_DIR: ${{ github.workspace }}/csod-debug
         run: uv run pytest tests/ingest/test_live_scrape.py -v -m live
+
+      - name: Upload CSOD debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csod-debug
+          path: csod-debug/
+          if-no-files-found: ignore
 
       - name: Scrape all sources
         working-directory: apps/api
