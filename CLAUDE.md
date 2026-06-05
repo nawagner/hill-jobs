@@ -60,7 +60,7 @@ Public:
 
 Protected (requires `x-internal-token` header):
 - `POST /api/internal/ingest/run`
-- `POST /api/internal/ingest/hvaps?pdf_url=<url>` — HVAPS PDF bulletin ingest
+- `POST /api/internal/ingest/hvaps?pdf_url=<url>` — HVAPS PDF bulletin ingest (manual fallback; HVAPS is normally picked up automatically from Gmail)
 
 ## Triggering Ingestion
 
@@ -70,7 +70,7 @@ To trigger ingestion manually:
 TOKEN=$(railway variables --service beneficial-beauty --json 2>&1 | python3 -c "import sys,json; print(json.load(sys.stdin)['INTERNAL_INGEST_TOKEN'])")
 curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/ingest/run" -H "x-internal-token: $TOKEN"
 
-# Ingest HVAPS PDF (paste the PDF URL from the weekly email)
+# Manual HVAPS fallback (only needed if the email adapter missed a bulletin)
 curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/ingest/hvaps?pdf_url=<PASTE_PDF_URL_HERE>" -H "x-internal-token: $TOKEN"
 ```
 
@@ -86,7 +86,8 @@ curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/i
 | `UsajobsAdapter` (GPO) | `gpo-usajobs` | USAJobs API (needs key) | Railway |
 | `CboBizmerlinAdapter` | `cbo-bizmerlin` | REST API (bizmerlin.net) | Railway |
 | `CsodAdapter` | `csod-house-cao`, `csod-uscp` | agent-browser | Local only |
-| HVAPS endpoint | `house-hvaps` | PDF parsing (manual URL trigger) | Railway |
+| `HvapsEmailAdapter` | `house-hvaps` | Gmail IMAP → PDF parsing | GitHub Actions (daily) |
+| HVAPS endpoint | `house-hvaps` | PDF parsing (manual URL fallback) | Railway |
 
 ## Changelog
 
