@@ -1,7 +1,9 @@
 import json
 import logging
+import os
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 import httpx
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
@@ -128,6 +130,7 @@ class CsodAdapter:
             page.wait_for_selector("a[href*=requisition]", timeout=15000)
         except PlaywrightTimeout:
             logger.warning("CSOD %s: timed out waiting for job links", self.config.source_system)
+            _dump_debug_artifacts(page, self.config.source_system, "listing-timeout")
             return []
 
         raw = page.evaluate(_EXTRACT_JOBS_JS)
@@ -157,6 +160,22 @@ class CsodAdapter:
                 )
             )
         return jobs
+
+
+def _dump_debug_artifacts(page, source_system: str, tag: str) -> None:
+    debug_dir = os.environ.get("CSOD_DEBUG_DIR")
+    if not debug_dir:
+        return
+    try:
+        out = Path(debug_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        stem = f"{source_system}-{tag}"
+        page.screenshot(path=str(out / f"{stem}.png"), full_page=True)
+        (out / f"{stem}.html").write_text(page.content(), encoding="utf-8")
+        (out / f"{stem}.url.txt").write_text(page.url, encoding="utf-8")
+        logger.info("CSOD %s: dumped debug artifacts to %s", source_system, out)
+    except Exception:
+        logger.exception("CSOD %s: failed to dump debug artifacts", source_system)
 
 
 def _fetch_detail(page, url: str, config: CsodConfig) -> dict | None:
