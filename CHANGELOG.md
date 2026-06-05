@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-06-05
+
+- Repo activity ping to keep scheduled GitHub Actions (House jobs ingestion) running
+
 ## 2026-03-23
 
 - Add GAO, GPO, and CBO ingestion adapters (#46)
