@@ -8,6 +8,12 @@ Project: `hill-jobs`, Environment: `production`
 - **beneficial-beauty** — FastAPI backend (API service)
   - Domain: `https://beneficial-beauty-production.up.railway.app`
 - **Postgres** — Database
+- **ingest-cron** — Daily ingestion of all sources (`apps/api/scripts/cron_ingest.py`)
+  - Built from the same `apps/api/Dockerfile` as the API; the service variable `INSTALL_CHROMIUM=1` adds Chromium for CSOD
+  - Settings (Railway dashboard): root dir `/apps/api`, start command `uv run --no-sync python scripts/cron_ingest.py`, cron `0 10 * * *` (UTC), restart policy `NEVER`
+  - The repo-root `railway.toml` overrides dashboard build settings for every service, so don't point a service at a different Dockerfile from the dashboard
+  - Variables reference `beneficial-beauty` (`DATABASE_URL`, `USAJOBS_API_KEY`, `OPENROUTER_API_KEY`); HVAPS also needs `GMAIL_APP_PASSWORD` (and `GMAIL_ADDRESS` if not the default)
+  - Exits non-zero if a source errors or unexpectedly returns 0 jobs, so check its deployment status/logs when data looks stale
 
 ### Useful commands
 ```bash
@@ -64,7 +70,9 @@ Protected (requires `x-internal-token` header):
 
 ## Triggering Ingestion
 
-To trigger ingestion manually:
+Ingestion runs daily on the `ingest-cron` Railway service. Don't move it back to a GitHub Actions `schedule:`: GitHub disables scheduled workflows after 60 days without repo activity, which silently froze the site from August to October 2026.
+
+To trigger the server-side (non-browser) sources manually:
 ```bash
 # Get the token (table output truncates long values, always use --json)
 TOKEN=$(railway variables --service beneficial-beauty --json 2>&1 | python3 -c "import sys,json; print(json.load(sys.stdin)['INTERNAL_INGEST_TOKEN'])")
@@ -78,16 +86,16 @@ curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/i
 
 | Adapter | Source System | Method | Runs On |
 |---|---|---|---|
-| `HouseDemsResumebankAdapter` | `house-dems-resumebank` | REST API (domewatch.us) | Railway |
-| `SenateAdapter` | `senate-webscribble` | REST API | Railway |
-| `LocAdapter` | `loc-careers` | Web scraping | Railway |
-| `UsajobsAdapter` (AOC) | `aoc-usajobs` | USAJobs API (needs key) | Railway |
-| `UsajobsAdapter` (GAO) | `gao-usajobs` | USAJobs API (needs key) | Railway |
-| `UsajobsAdapter` (GPO) | `gpo-usajobs` | USAJobs API (needs key) | Railway |
-| `CboBizmerlinAdapter` | `cbo-bizmerlin` | REST API (bizmerlin.net) | Railway |
-| `CsodAdapter` | `csod-house-cao`, `csod-uscp` | agent-browser | Local only |
-| `HvapsEmailAdapter` | `house-hvaps` | Gmail IMAP → PDF parsing | GitHub Actions (daily) |
-| HVAPS endpoint | `house-hvaps` | PDF parsing (manual URL fallback) | Railway |
+| `HouseDemsResumebankAdapter` | `house-dems-resumebank` | REST API (domewatch.us) | Railway cron |
+| `SenateAdapter` | `senate-webscribble` | REST API | Railway cron |
+| `LocAdapter` | `loc-careers` | Web scraping | Railway cron |
+| `UsajobsAdapter` (AOC) | `aoc-usajobs` | USAJobs API (needs key) | Railway cron |
+| `UsajobsAdapter` (GAO) | `gao-usajobs` | USAJobs API (needs key) | Railway cron |
+| `UsajobsAdapter` (GPO) | `gpo-usajobs` | USAJobs API (needs key) | Railway cron |
+| `CboBizmerlinAdapter` | `cbo-bizmerlin` | REST API (bizmerlin.net) | Railway cron |
+| `CsodAdapter` | `csod-house-cao`, `csod-house-clerk`, `csod-house-saa`, `csod-house-green-gold`, `csod-uscp` | Playwright (Chromium) | Railway cron |
+| `HvapsEmailAdapter` | `house-hvaps` | Gmail IMAP → PDF parsing | Railway cron |
+| HVAPS endpoint | `house-hvaps` | PDF parsing (manual URL fallback) | Railway API |
 
 ## Changelog
 

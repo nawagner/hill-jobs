@@ -2,14 +2,19 @@
 
 Runs every source adapter, including the Playwright-based CSOD sites and the
 HVAPS Gmail adapter, and upserts results directly into the database.
-Executed daily by the `ingest-cron` Railway service (see Dockerfile.cron).
+Executed daily by the `ingest-cron` Railway service (built from Dockerfile
+with INSTALL_CHROMIUM=1).
 """
 
 import logging
 import sys
+from pathlib import Path
 
 import httpx
 from sqlalchemy.orm import sessionmaker
+
+# Make `app` importable when run as `python scripts/cron_ingest.py`.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import Settings
 from app.db import get_engine

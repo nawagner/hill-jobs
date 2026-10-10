@@ -7,6 +7,15 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
+# The ingest-cron Railway service sets INSTALL_CHROMIUM=1 so the Playwright-based
+# CSOD scraper has a browser. The API service leaves it unset (no browser).
+ARG INSTALL_CHROMIUM=""
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN if [ -n "$INSTALL_CHROMIUM" ]; then \
+      uv run --no-sync playwright install --with-deps chromium \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 COPY alembic.ini ./
 COPY alembic/ alembic/
 COPY app/ app/
