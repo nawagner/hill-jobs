@@ -43,6 +43,18 @@ def run_all_sources(
 
         try:
             source_jobs = adapter.fetch_jobs(http_client)
+
+            # Some adapters (e.g. CSOD) swallow scrape failures and return [].
+            # Don't treat that as a successful sync, or mark_missing_jobs would
+            # close every open job for the source after a few bad days.
+            if not source_jobs:
+                sync_run.status = "empty"
+                sync_run.finished_at = datetime.now(timezone.utc)
+                session.commit()
+                results[name] = SyncRunResult(status="empty")
+                logger.warning("Source %s returned no jobs; skipping upsert", name)
+                continue
+
             upsert_result = upsert_jobs(session, source_jobs, now)
             missing_result = mark_missing_jobs(
                 session, name, set(upsert_result.seen_ids), now

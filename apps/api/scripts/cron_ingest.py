@@ -1,7 +1,8 @@
 """Scheduled ingestion cron job.
 
-Runs all server-side adapters (same as POST /api/internal/ingest/run).
-Intended to be executed as a Railway cron service daily at 4 AM ET.
+Runs every source adapter, including the Playwright-based CSOD sites and the
+HVAPS Gmail adapter, and upserts results directly into the database.
+Executed daily by the `ingest-cron` Railway service (see Dockerfile.cron).
 """
 
 import logging
@@ -14,7 +15,16 @@ from app.config import Settings
 from app.db import get_engine
 from app.ingest.adapters.aoc_usajobs import AocUsajobsAdapter
 from app.ingest.adapters.cbo_bizmerlin import CboBizmerlinAdapter
+from app.ingest.adapters.csod import (
+    CsodAdapter,
+    HOUSE_CAO_CONFIG,
+    HOUSE_CLERK_CONFIG,
+    HOUSE_GREEN_GOLD_CONFIG,
+    HOUSE_SAA_CONFIG,
+    USCP_CONFIG,
+)
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
+from app.ingest.adapters.hvaps_email import HvapsEmailAdapter
 from app.ingest.adapters.loc import LocAdapter
 from app.ingest.adapters.senate import SenateAdapter
 from app.ingest.adapters.usajobs import UsajobsAdapter, GAO_CONFIG, GPO_CONFIG
@@ -22,6 +32,16 @@ from app.ingest.run_all import run_all_sources
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+# Sources that may legitimately return 0 jobs (no openings, or no credentials).
+ALLOW_EMPTY = {
+    "csod-house-saa",
+    "aoc-usajobs",
+    "gao-usajobs",
+    "gpo-usajobs",
+    "cbo-bizmerlin",
+    "house-hvaps",
+}
 
 
 def build_registry(settings: Settings):
@@ -40,6 +60,18 @@ def build_registry(settings: Settings):
         registry["gpo-usajobs"] = UsajobsAdapter(GPO_CONFIG, **uj_kwargs)
 
     registry["cbo-bizmerlin"] = CboBizmerlinAdapter()
+    # After house-dems-resumebank so cross-source dedup matches existing rows.
+    registry["house-hvaps"] = HvapsEmailAdapter()
+
+    # Browser-based sources last: slowest and most likely to fail.
+    for config in (
+        HOUSE_CAO_CONFIG,
+        HOUSE_CLERK_CONFIG,
+        HOUSE_SAA_CONFIG,
+        HOUSE_GREEN_GOLD_CONFIG,
+        USCP_CONFIG,
+    ):
+        registry[config.source_system] = CsodAdapter(config)
     return registry
 
 
@@ -52,19 +84,24 @@ def main():
     registry = build_registry(settings)
     logger.info("Starting scheduled ingestion for %d sources", len(registry))
 
-    with httpx.Client(timeout=60.0) as client:
-        results = run_all_sources(session, registry, client)
+    try:
+        with httpx.Client(timeout=60.0) as client:
+            results = run_all_sources(session, registry, client)
+    finally:
+        session.close()
+        engine.dispose()
 
-    session.close()
-
+    failures = []
     for name, r in results.items():
         status = f"  {name}: {r.status} — found={r.jobs_found} created={r.created} updated={r.updated} closed={r.closed}"
         if r.error:
             status += f" error={r.error}"
         print(status)
+        if r.status == "error" or (r.status == "empty" and name not in ALLOW_EMPTY):
+            failures.append(name)
 
-    if any(r.status == "error" for r in results.values()):
-        logger.error("One or more sources failed")
+    if failures:
+        logger.error("Sources failed or returned no jobs: %s", ", ".join(failures))
         sys.exit(1)
 
     logger.info("Scheduled ingestion complete")

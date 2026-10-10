@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import httpx
 
 from app.ingest.run_all import run_all_sources
+from app.models.jobs import Job
 from app.models.sync_runs import SourceSyncRun
 from app.schemas.ingest import SourceJob
 
@@ -23,6 +24,13 @@ class _SuccessAdapter:
                 raw_payload={},
             )
         ]
+
+
+class _EmptyAdapter:
+    source_system = "empty-source"
+
+    def fetch_jobs(self, client: httpx.Client) -> list[SourceJob]:
+        return []
 
 
 class _FailAdapter:
@@ -52,3 +60,23 @@ def test_one_failure_does_not_abort_others(db_session):
     statuses = {r.source_system: r.status for r in runs}
     assert statuses["good-source"] == "success"
     assert statuses["bad-source"] == "error"
+
+
+def test_empty_fetch_does_not_close_existing_jobs(db_session):
+    """An adapter returning [] (e.g. a swallowed scrape failure) must not
+    count as a successful sync, so repeated empty runs never close jobs."""
+    client = httpx.Client()
+    for _ in range(3):
+        run_all_sources(db_session, {"good-source": _SuccessAdapter()}, client)
+
+    for _ in range(3):
+        results = run_all_sources(db_session, {"good-source": _EmptyAdapter()}, client)
+    client.close()
+
+    assert results["good-source"].status == "empty"
+    job = db_session.query(Job).one()
+    assert job.status == "open"
+
+    statuses = [r.status for r in db_session.query(SourceSyncRun).all()]
+    assert statuses.count("success") == 3
+    assert statuses.count("empty") == 3
