@@ -1,0 +1,120 @@
+{
+  "pagination": {
+    "current": 1,
+    "next": null,
+    "of": 6,
+    "perpage": 50,
+    "total": 1
+  },
+  "results": [
+    {
+      "id": "http://www.loc.gov/item/careers/reader-registration-supervisor-detail-temporary-promotion-2/",
+      "url": "https://www.loc.gov/item/careers/reader-registration-supervisor-detail-temporary-promotion-2/",
+      "title": "Library Enterprises Director (Detail/Temporary Promotion)",
+      "subject": [
+        "nte 120 days",
+        "detail"
+      ],
+      "item": {
+        "article": "<p>The <strong>Library Enterprises Directorate with COO</strong> is offering a promotional opportunity for a qualified individual at the GS-15 level , or a lateral opportunity for a qualified individual at the Senior Leader (SL) level, to serve on a full-time, 120-day temporary detail to the SL-00 level as the Director of Library Enterprises. Applicants must have one year time-in-grade at the GS-15 level to be eligible to be temporarily promoted to the SL-00.</p><p>Reporting to the Chief Operating Officer, this position supervises three divisions: The Federal Research Division, FEDLINK, and Business Enterprises. These three programs are comprised of five revolving and offsetting collection funds that support over 100 Library employees.</p><p><strong>Responsibilities</strong></p><p>The Director for Library Enterprises is responsible for the overall administration of activities, programs and services within the Federal Research Division (FRD), Federal Library and Information Network (FEDLINK) and Business Enterprises (BE). The incumbent utilizes the concepts, principles, practical laws, policies, and procedures applicable to financial management and contracting formulation and execution.<br />Administering, planning, implementing, and evaluating programs and activities that provide high-quality services and goods to the various users of the Library\u2019s revolving fund programs, including federal libraries, other federal agencies, information and research centers, and the general public.<br />Perform business functions, including: market analysis and assessment of market changes; applying GAAP compliant accounting methods; making return on investment decisions; estimating revenues, expenditures, and operating results; shifting priorities based on market indicators; determining the best mix of resources to execute work that supports the Library\u2019s mission.</p><p><strong><u>Application Process:</u></strong></p><p><strong>Interested candidates should:</strong></p><p>Obtain permission from their supervisor.<br />Submit a <a href=\"https://staff.loc.gov/wikis/display/LSAP/Federal+Style+Resume\"><em>federal style</em></a> resume <em>(Please <strong>follow the link and ensure</strong> the resume includes all components of a federal style resume.)</em><br />Submit a one-page Statement of Interest describing qualifications that include work experience, education and training related to the knowledge, skills, and abilities listed below.<br /><br /><strong>Managing Business Operations</strong>. The Director of Library Enterprises is responsible for the management of business operations, funds management, and the administration of activities which relate to FRD, FEDLINK and BE. This encompasses the complete program and project management within the office. The incumbent is empowered to make day-to-day business decisions consistent with executive direction and established policies. The incumbent monitors and oversees the management and progress of the subordinate offices to ensure that the organization\u2019s overall business mission and strategic objectives are met; responsible for allocating resources in accordance with priorities determined by executive management; initiates, modifies, recommends, or discontinues such actions as appropriate.<br /><br /><strong>Exercises Supervisory and/or Managerial Authorities. </strong>Supervises a group of employees performing work up to the Senior Level. Provides administrative and technical supervision relative to the staff supervised. Plans work to be accomplished by subordinates, sets and adjusts short-term priorities, and prepares schedules for completion of work.<br /><br /><strong>Contract Management</strong>. The incumbent is responsible for ensuring that procurement and contract activities are conducted in accordance with applicable laws regulations policies, and in accordance with sound business practices. The incumbent manages the procurement and contract workload for efficient and effective operations, establishes priorities to ensure that client requirements are fulfilled timely and under terms representing the best value.</p><p><strong><u>Eligibility</u>:</strong> This opportunity is open to LC permanent staff who have permission from their <em>supervisor<strong>.</strong></em><strong>\u00a0</strong></p><p><strong><u>Work Schedule</u></strong>: Flexitime, with six onsite days per pay period.\u00a0</p><p><strong><u>Submission:</u> With permission from their supervisor, candidates should submit the required documents above to Chang Xiang (</strong><a href=\"mailto:cxia@loc.gov\">cxia@loc.gov</a>)<strong> by 5:00 pm on October 09, 2026.</strong></p><p><strong><u>Selection:</u></strong> Applicant information will be reviewed, and the best qualified candidate based on the required knowledge, skills, and abilities will be selected.</p><p><strong><u>Start Date:</u></strong> The desired start date for the Detail or Temporary Promotion is October 19, 2026.</p>",
+        "availability": "Library Employees Only",
+        "closing_date": "2026-10-09T23:59:59Z",
+        "grade": "SL-00",
+        "lc_organization_unit": "Office of the Chief Operating Officer",
+        "opening_date": "2026-09-25T00:00:00Z",
+        "series": "0301",
+        "telework_eligibility": "Hybrid"
+      }
+    },
+    {
+      "id": "http://www.loc.gov/item/careers/supervisory-librarian-vacancy-var003371/",
+      "url": "https://www.loc.gov/item/careers/supervisory-librarian-vacancy-var003371/",
+      "title": "Supervisory Librarian (Vacancy#: VAR003371)",
+      "subject": [
+        "permanent"
+      ],
+      "item": {
+        "article": "This position is for a Supervisory Librarian and is located in Discovery and Preservation Services, Acquisitions and Bibliographic Directorate, German and Slavic Division, in the German Section.<br /><br />The incumbent of this position serves as Section Head and is responsible for managing the work, including acquisitions and cataloging functions, of the section, overseeing the work of a staff of librarians and library technicians performing these functions, and performing administrative and human resource management functions relative to the staff supervised. The incumbent serves under the administrative supervision of the division chief. The incumbent works highly independently, exercising considerable judgment, and carries out duties and responsibilities in accordance with broad overall guidelines and policies.",
+        "availability": "Open to All",
+        "closing_date": "2026-10-12T23:59:59Z",
+        "grade": "GS-14",
+        "lc_organization_unit": "Discovery and Preservation Services",
+        "opening_date": "2026-09-10T00:00:00Z",
+        "series": "1410",
+        "telework_eligibility": "Local Telework"
+      }
+    },
+    {
+      "id": "http://www.loc.gov/item/careers/it-asset-management-specialist-vacancyvar003462/",
+      "url": "https://www.loc.gov/item/careers/it-asset-management-specialist-vacancyvar003462/",
+      "title": "IT Asset Management Specialist (Vacancy#:VAR003462)",
+      "subject": [
+        "permanent"
+      ],
+      "item": {
+        "article": "<span>The position is located in the IT Asset Management Division within the IT Risk Management Directorate of the Office of the Chief Information Officer and reports to the Division Chief. The IT Asset Management Specialist supports the Library\u2019s IT asset management program. As such, the specialist is responsible for performing centralized IT asset management functions, processes, and solutions. Moreover, the specialist is responsible for maintaining integration among IT asset management functions and other related processes and solutions.</span>",
+        "availability": "Open to All",
+        "closing_date": "2026-10-13T23:59:59Z",
+        "grade": "GS-13",
+        "lc_organization_unit": "Office of the Chief Information Officer",
+        "opening_date": "2026-09-30T00:00:00Z",
+        "series": "2210",
+        "telework_eligibility": "Remote"
+      }
+    },
+    {
+      "id": "http://www.loc.gov/item/careers/physical-security-specialist-locksmithvacancyvar003455/",
+      "url": "https://www.loc.gov/item/careers/physical-security-specialist-locksmithvacancyvar003455/",
+      "title": "Physical Security Specialist (Locksmith)(Vacancy#:VAR003455)",
+      "subject": [
+        "permanent"
+      ],
+      "item": {
+        "article": "<p><span>This position is located in the Protective Services Division of the Security and Emergency Preparedness Directorate (SEPD), Office of the Chief Operating Officer (COO), and reports directly to the Chief, Protective Services. The incumbent serves as the technical subject matter expert for hardware, lock and keying for the Library of Congress three buildings on Capitol Hill and branches in Culpeper, VA and Ft. Meade, MD.</span></p><div></div><div>The incumbent installs, repairs, and maintains mechanical high-security locking systems and safes. Serves as the key manager for master key systems and oversees the key control programs which includes key issuance, tracking, auditing and accountability. Cuts replacement keys and managing key tracking databases to maintain strict security compliance. Installs new and modern locks and replaces or services worn or outdated security locks and systems. Conducts short and long-range planning or maintenance and implements replacement programs for locks and security devices. Monitors and evaluates physical security systems and hardware to identify vulnerabilities and serves as the program manager for building re-keys.</div>",
+        "availability": "Open to All",
+        "closing_date": "2026-10-13T23:59:59Z",
+        "grade": "GS-12",
+        "lc_organization_unit": "Office of the Chief Operating Officer",
+        "opening_date": "2026-09-22T00:00:00Z",
+        "series": "0080",
+        "telework_eligibility": "On-Site"
+      }
+    },
+    {
+      "id": "http://www.loc.gov/item/careers/events-coordinator-vacancyvar003461/",
+      "url": "https://www.loc.gov/item/careers/events-coordinator-vacancyvar003461/",
+      "title": "Events Coordinator (Vacancy#VAR003461)",
+      "subject": [
+        "permanent"
+      ],
+      "item": {
+        "article": "<span>This position serves as an Event Coordinator in Center for Learning, Literacy &amp; Engagement Directorate, Office of The Librarian, at the Library of Congress (LOC). The Event Coordinator directs and administers the development and management of special events in the Library of Congress. The event coordinator is responsible for planning, managing, and coordinating official functions, including, but not limited to, ceremonies, exhibition openings, seminars, conferences, performances, receptions, breakfasts, lunches and dinners. These functions in concert with the exhibition, scholarly, educational, publishing, public affairs and outreach activities of the other Library units, are a key element in the efforts to interpret the extraordinary collections of the Library and to convey information on the scope and importance of Library services available to the nation's citizens. The events may also include congressionally-sponsored events; and events hosted by approved outside organizations in the Library's spaces.</span>",
+        "availability": "Open to All",
+        "closing_date": "2026-10-15T23:59:59Z",
+        "grade": "GS-11",
+        "lc_organization_unit": "Office of the Librarian",
+        "opening_date": "2026-10-01T00:00:00Z",
+        "series": "0301",
+        "telework_eligibility": "Hybrid"
+      }
+    },
+    {
+      "id": "http://www.loc.gov/item/careers/work-study-student-program-2026-2027/",
+      "url": "https://www.loc.gov/item/careers/work-study-student-program-2026-2027/",
+      "title": "Work Study Student Program 2026/2027",
+      "subject": [
+        "temporary"
+      ],
+      "item": {
+        "article": "<span>The Library of Congress Work Study Student Program is a progressive, career development program for local <strong>high school</strong> students.\u00a0 It combines on-the-job training and career development with classroom instructions and education.\u00a0 Under the program, students earn a federal salary, receive work site supervision and career assistance.\u00a0Students will get the chance to work part-time when school is in session with the possibility of\u00a0full-time employment during school breaks.</span>",
+        "availability": "Open to All",
+        "closing_date": "2027-04-23T23:59:59Z",
+        "grade": "GS-01",
+        "lc_organization_unit": "All Service Units",
+        "opening_date": "2026-05-04T00:00:00Z",
+        "series": "0303",
+        "telework_eligibility": "Hybrid"
+      }
+    }
+  ]
+}
