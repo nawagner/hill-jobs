@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-11
+
+- Rewrite Library of Congress adapter to use loc.gov's JSON API; the HTML career pages now sit behind a Cloudflare challenge
+  - Recognizes all vacancy-number spellings in titles, keeps the old title format so existing rows still match
+  - Paces detail requests and retries on 429 rate limits
+
 ## 2026-10-10
 
 - Move daily ingestion from GitHub Actions to a Railway cron service (`ingest-cron`)

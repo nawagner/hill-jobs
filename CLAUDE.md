@@ -88,7 +88,7 @@ curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/i
 |---|---|---|---|
 | `HouseDemsResumebankAdapter` | `house-dems-resumebank` | REST API (domewatch.us) | Railway cron |
 | `SenateAdapter` | `senate-webscribble` | REST API | Railway cron |
-| `LocAdapter` | `loc-careers` | Web scraping | Railway cron |
+| `LocAdapter` | `loc-careers` | JSON API (loc.gov `?fo=json`; HTML is behind Cloudflare) | Railway cron |
 | `UsajobsAdapter` (AOC) | `aoc-usajobs` | USAJobs API (needs key) | Railway cron |
 | `UsajobsAdapter` (GAO) | `gao-usajobs` | USAJobs API (needs key) | Railway cron |
 | `UsajobsAdapter` (GPO) | `gpo-usajobs` | USAJobs API (needs key) | Railway cron |
