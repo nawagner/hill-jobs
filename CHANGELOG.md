@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-10
+
+- Move daily ingestion from GitHub Actions to a Railway cron service (`ingest-cron`)
+  - GitHub had disabled the scheduled workflow on 2026-08-04 for repo inactivity, freezing the site
+  - Cron now covers all 13 sources, including CSOD (Chromium via `INSTALL_CHROMIUM` build arg) and HVAPS email
+  - A source returning 0 jobs is recorded as `empty`, not `success`, so failed scrapes can't close its open jobs
+  - GitHub workflow is now tests-only
+
 ## 2026-06-05
 
 - Repo activity ping to keep scheduled GitHub Actions (House jobs ingestion) running

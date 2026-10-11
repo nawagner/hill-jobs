@@ -1,9 +1,9 @@
-name: Scrape & Test
+# Daily ingestion runs on Railway (ingest-cron service), not here.
+# GitHub disables scheduled workflows after 60 days without repo activity,
+# which silently stopped ingestion in August 2026.
+name: Test
 
 on:
-  schedule:
-    # Run daily at 6 AM ET (10:00 UTC)
-    - cron: "0 10 * * *"
   push:
     branches: [main]
   workflow_dispatch:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  scrape:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -52,28 +52,3 @@ jobs:
           name: csod-debug
           path: csod-debug/
           if-no-files-found: ignore
-
-      - name: Scrape all sources
-        working-directory: apps/api
-        env:
-          USAJOBS_API_KEY: ${{ secrets.USAJOBS_API_TOKEN }}
-
-          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: |
-          uv run python ../../scripts/scrape_all.py --output-dir ../../data/scraped | tee /tmp/scrape-summary.md
-
-      - name: Post summary to job summary
-        run: cat /tmp/scrape-summary.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upsert scraped data to database
-        working-directory: apps/api
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: |
-          uv run python ../../scripts/upsert_scraped.py --input-dir ../../data/scraped | tee /tmp/upsert-summary.md
-
-      - name: Post upsert summary
-        run: cat /tmp/upsert-summary.md >> "$GITHUB_STEP_SUMMARY"
-
