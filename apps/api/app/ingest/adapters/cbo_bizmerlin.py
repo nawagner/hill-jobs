@@ -9,8 +9,8 @@ from app.schemas.ingest import SourceJob
 
 logger = logging.getLogger(__name__)
 
-POSITIONS_URL = "https://cbo.bizmerlin.net/job-board/position/api/getpositions"
-JOBBOARD_BASE = "https://cbo.bizmerlin.net/jobboard/#/position/view"
+POSITIONS_URL = "https://cbo.clayhr.com/job-board/position/api/getpositions"
+JOBBOARD_BASE = "https://cbo.clayhr.com/jobboard/#/position/view"
 SOURCE_SYSTEM = "cbo-bizmerlin"
 SOURCE_ORG = "Congressional Budget Office"
 

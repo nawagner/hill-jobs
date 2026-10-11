@@ -7,6 +7,7 @@
   - Cron now covers all 13 sources, including CSOD (Chromium via `INSTALL_CHROMIUM` build arg) and HVAPS email
   - A source returning 0 jobs is recorded as `empty`, not `success`, so failed scrapes can't close its open jobs
   - GitHub workflow is now tests-only
+- Point CBO adapter at `cbo.clayhr.com`; the old `cbo.bizmerlin.net` host now serves a mismatched TLS certificate
 
 ## 2026-06-05
 

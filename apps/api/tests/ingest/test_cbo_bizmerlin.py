@@ -35,7 +35,7 @@ def test_parse_position():
     assert job.source_organization == SOURCE_ORG
     assert job.title == "Dissertation Fellow"
     assert job.source_job_id == "342528"
-    assert job.source_url == "https://cbo.bizmerlin.net/jobboard/#/position/view/342528/Dissertation_Fellow_"
+    assert job.source_url == "https://cbo.clayhr.com/jobboard/#/position/view/342528/Dissertation_Fellow_"
 
 
 def test_parse_location():
