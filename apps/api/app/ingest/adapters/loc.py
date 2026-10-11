@@ -25,6 +25,8 @@ DEFAULT_LOCATION = "Washington, DC"
 MAX_PAGES = 10
 # loc.gov rate-limits its JSON API (429), so pace the per-job detail requests.
 DETAIL_DELAY_SECONDS = 1.0
+# Under load loc.gov sometimes stalls mid-response; fail fast and retry.
+REQUEST_TIMEOUT_SECONDS = 20.0
 
 # Titles end with the vacancy number in a few spellings:
 # "(Vacancy#: VAR003371)", "(Vacancy#:VAR003462)", "(Vacancy#VAR003461)"
@@ -61,8 +63,16 @@ class LocAdapter:
 
 def _get_json(client: httpx.Client, url: str, retries: int = 3) -> dict:
     for attempt in range(retries):
-        resp = client.get(url, follow_redirects=True)
-        if resp.status_code == 429 and attempt < retries - 1:
+        last = attempt == retries - 1
+        try:
+            resp = client.get(url, follow_redirects=True, timeout=REQUEST_TIMEOUT_SECONDS)
+        except httpx.TransportError:
+            # Dropped connections and stalled responses (RemoteProtocolError, ReadTimeout).
+            if last:
+                raise
+            time.sleep(2.0 ** (attempt + 2))
+            continue
+        if resp.status_code == 429 and not last:
             time.sleep(_retry_delay(resp, attempt))
             continue
         resp.raise_for_status()
