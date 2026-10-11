@@ -5,6 +5,7 @@
 - Rewrite Library of Congress adapter to use loc.gov's JSON API; the HTML career pages now sit behind a Cloudflare challenge
   - Recognizes all vacancy-number spellings in titles, keeps the old title format so existing rows still match
   - Paces detail requests and retries on 429 rate limits
+- LoC adapter also retries dropped connections, with a 20s per-request timeout (loc.gov sometimes stalls mid-response)
 
 ## 2026-10-10
 

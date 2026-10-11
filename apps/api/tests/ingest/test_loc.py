@@ -131,3 +131,27 @@ def test_fetch_jobs_retries_rate_limited_detail(monkeypatch):
     assert detail_calls == 2
     assert sleeps == [5.0]
     assert jobs[0].salary_min == 143_913.00
+
+
+def test_fetch_jobs_retries_dropped_connection(monkeypatch):
+    """loc.gov sometimes closes the connection mid-body; retry instead of dropping salary."""
+    sleeps: list[float] = []
+    monkeypatch.setattr("app.ingest.adapters.loc.time.sleep", sleeps.append)
+    results = _listing()["results"][:1]
+    detail_calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal detail_calls
+        if str(request.url) == LISTING_URL:
+            return httpx.Response(200, json={"results": results, "pagination": {"next": None}})
+        detail_calls += 1
+        if detail_calls == 1:
+            raise httpx.RemoteProtocolError("peer closed connection", request=request)
+        return httpx.Response(200, json=_detail())
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        jobs = LocAdapter(detail_delay=0).fetch_jobs(client)
+
+    assert detail_calls == 2
+    assert sleeps == [4.0]
+    assert jobs[0].salary_min == 143_913.00
