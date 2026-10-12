@@ -127,6 +127,21 @@ def test_source_organization_updated(db_session):
     assert job.source_organization == "Rep. Jane Smith"
 
 
+
+def test_existing_job_is_reclassified(db_session):
+    """Classifier fixes reach jobs already in the database the next time they're seen."""
+    now = datetime.now(timezone.utc)
+    upsert_jobs(db_session, [_make_source_job(title="Staff Assistant")], now)
+    job = db_session.query(Job).first()
+    job.role_kind = "communications"  # as the old classifier left it
+    db_session.commit()
+
+    result = upsert_jobs(db_session, [_make_source_job(title="Staff Assistant")], now)
+
+    assert result.updated == 1
+    assert result.updated_details[0].changed_fields == ["role_kind"]
+    assert db_session.query(Job).first().role_kind == "operations"
+
 def test_hash_based_slug_for_no_job_id(db_session):
     now = datetime.now(timezone.utc)
     src = _make_source_job(source_job_id=None)
