@@ -1,15 +1,23 @@
 """Weekly newsletter sender.
 
 Sends digest emails to confirmed subscribers with jobs matching their filters
-posted in the last 7 days. Intended to run as a Railway cron service weekly.
+posted in the last 7 days. Run weekly by the `newsletter-cron` Railway service.
+Pass --dry-run to log what would be sent without sending or recording anything.
 """
 
+import argparse
 import logging
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from sqlalchemy import select
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
+
+# Make `app` importable when run as `python scripts/send_newsletter.py`.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import Settings
 from app.db import get_engine
@@ -21,31 +29,40 @@ from app.search.query_jobs import query_jobs
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
+# Don't send twice in one week, even if the cron is re-run.
+MIN_DAYS_BETWEEN_SENDS = 6
 
-def main():
-    settings = Settings()
-    if not settings.resend_api_key:
-        logger.error("RESEND_API_KEY not set; aborting")
-        sys.exit(1)
 
-    engine = get_engine()
-    Session = sessionmaker(bind=engine)
-    session = Session()
+@dataclass
+class NewsletterResult:
+    sent: int = 0
+    skipped: int = 0
+    errors: int = 0
 
-    now = datetime.now(timezone.utc)
+
+def send_digests(
+    session: Session,
+    *,
+    api_key: str,
+    site_base_url: str,
+    now: datetime | None = None,
+    send: Callable[..., None] = send_email,
+    dry_run: bool = False,
+) -> NewsletterResult:
+    now = now or datetime.now(timezone.utc)
+    result = NewsletterResult()
+
     subscribers = session.execute(
         select(Subscriber).where(Subscriber.confirmed == True)  # noqa: E712
     ).scalars().all()
-
     logger.info("Found %d confirmed subscribers", len(subscribers))
-    sent = 0
-    skipped = 0
-    errors = 0
 
     for sub in subscribers:
-        # Idempotency: skip if sent within last 6 days
-        if sub.last_sent_at and (now - sub.last_sent_at) < timedelta(days=6):
-            skipped += 1
+        last_sent = sub.last_sent_at
+        if last_sent and last_sent.tzinfo is None:
+            last_sent = last_sent.replace(tzinfo=timezone.utc)
+        if last_sent and (now - last_sent) < timedelta(days=MIN_DAYS_BETWEEN_SENDS):
+            result.skipped += 1
             continue
 
         filters = sub.filters or {}
@@ -69,32 +86,70 @@ def main():
         )
 
         if not jobs:
-            skipped += 1
+            result.skipped += 1
             continue
 
-        html = build_digest_html(jobs, sub.unsubscribe_token, settings.site_base_url)
         subject = f"Hill Jobs Weekly: {total} new position{'s' if total != 1 else ''} matching your filters"
 
+        if dry_run:
+            logger.info("[dry run] Would send to %s (%d jobs)", _mask(sub.email), total)
+            result.sent += 1
+            continue
+
         try:
-            send_email(
-                api_key=settings.resend_api_key,
+            send(
+                api_key=api_key,
                 to=sub.email,
                 subject=subject,
-                html=html,
+                html=build_digest_html(jobs, sub.unsubscribe_token, site_base_url),
             )
             sub.last_sent_at = now
             session.commit()
-            sent += 1
-            logger.info("Sent digest to %s (%d jobs)", sub.email, len(jobs))
+            result.sent += 1
+            logger.info("Sent digest to %s (%d jobs)", _mask(sub.email), total)
         except Exception:
-            errors += 1
+            result.errors += 1
             session.rollback()
-            logger.exception("Failed to send to %s", sub.email)
+            logger.exception("Failed to send to %s", _mask(sub.email))
 
-    session.close()
-    logger.info("Newsletter complete: sent=%d skipped=%d errors=%d", sent, skipped, errors)
+    return result
 
-    if errors:
+
+def _mask(email: str) -> str:
+    """Keep subscriber addresses out of logs: jane.doe@example.com -> j***@example.com."""
+    local, _, domain = email.partition("@")
+    return f"{local[:1]}***@{domain}"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dry-run", action="store_true", help="log what would be sent; send nothing")
+    args = parser.parse_args()
+
+    settings = Settings()
+    if not settings.resend_api_key and not args.dry_run:
+        logger.error("RESEND_API_KEY not set; aborting")
+        sys.exit(1)
+
+    engine = get_engine()
+    session = sessionmaker(bind=engine)()
+    try:
+        result = send_digests(
+            session,
+            api_key=settings.resend_api_key,
+            site_base_url=settings.site_base_url,
+            dry_run=args.dry_run,
+        )
+    finally:
+        session.close()
+        engine.dispose()
+
+    logger.info(
+        "Newsletter complete%s: sent=%d skipped=%d errors=%d",
+        " (dry run)" if args.dry_run else "",
+        result.sent, result.skipped, result.errors,
+    )
+    if result.errors:
         sys.exit(1)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-12
+
+- Turn on the weekly job-alert newsletter (#41 shipped the signup flow, but the sender never ran)
+  - New `newsletter-cron` Railway service, Mondays 11:30 UTC
+  - Fix `send_newsletter.py` imports, add `--dry-run`, mask subscriber emails in logs, add tests
+  - Escape scraped job titles and office names in digest emails
+
 ## 2026-10-11
 
 - Rewrite Library of Congress adapter to use loc.gov's JSON API; the HTML career pages now sit behind a Cloudflare challenge

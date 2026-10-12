@@ -14,6 +14,10 @@ Project: `hill-jobs`, Environment: `production`
   - The repo-root `railway.toml` overrides dashboard build settings for every service, so don't point a service at a different Dockerfile from the dashboard
   - Variables reference `beneficial-beauty` (`DATABASE_URL`, `USAJOBS_API_KEY`, `OPENROUTER_API_KEY`); HVAPS also needs `GMAIL_APP_PASSWORD` (and `GMAIL_ADDRESS` if not the default)
   - Exits non-zero if a source errors or unexpectedly returns 0 jobs, so check its deployment status/logs when data looks stale
+- **newsletter-cron** — Weekly "Subscribe to Job Alerts" digest (`apps/api/scripts/send_newsletter.py`)
+  - Same Dockerfile (no Chromium); start command `uv run --no-sync python scripts/send_newsletter.py`, cron `30 11 * * 1` (Mondays 11:30 UTC, after the 10:00 ingest), restart policy `NEVER`
+  - Variables reference `beneficial-beauty` (`DATABASE_URL`, `RESEND_API_KEY`); sends from `alerts@newsletters.hill-jobs.org` via Resend
+  - Only emails confirmed subscribers with matching jobs from the last 7 days, at most once per 6 days; `--dry-run` logs what it would send
 
 ### Useful commands
 ```bash

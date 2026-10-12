@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -63,9 +64,9 @@ def build_digest_html(
     <tr>
       <td style="padding:16px 0;border-bottom:1px solid #e2e8f0;">
         <a href="{site_base_url}/jobs/{job.slug}" style="color:#1e40af;font-weight:600;text-decoration:none;font-size:15px;">
-          {job.title}
+          {escape(job.title)}
         </a><br>
-        <span style="color:#475569;font-size:13px;">{job.source_organization}</span><br>
+        <span style="color:#475569;font-size:13px;">{escape(job.source_organization or "")}</span><br>
         {salary_html}<span style="color:#94a3b8;font-size:12px;">{posted}</span>
       </td>
     </tr>""")
