@@ -53,7 +53,8 @@ def build_digest_html(
     jobs: list[Job], unsubscribe_token: str, site_base_url: str
 ) -> str:
     job_rows = []
-    for job in jobs:
+    # Alphabetical by title reads better than posting order, since every job is from the same week.
+    for job in sorted(jobs, key=lambda j: (j.title.strip().casefold(), (j.source_organization or "").casefold())):
         salary = _format_salary(job)
         salary_html = f'<span style="color:#059669;font-size:13px;">{salary}</span><br>' if salary else ""
         posted = ""

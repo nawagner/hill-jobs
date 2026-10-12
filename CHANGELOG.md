@@ -6,6 +6,7 @@
   - New `newsletter-cron` Railway service, Mondays 11:30 UTC
   - Fix `send_newsletter.py` imports, add `--dry-run`, mask subscriber emails in logs, add tests
   - Escape scraped job titles and office names in digest emails
+  - List digest jobs alphabetically by title instead of by posting date
 
 ## 2026-10-11
 

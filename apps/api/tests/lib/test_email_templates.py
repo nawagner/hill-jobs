@@ -37,3 +37,28 @@ def test_digest_escapes_scraped_text():
     assert "<script>" not in html
     assert "Aide &lt;script&gt;alert(1)&lt;/script&gt; &amp; Scheduler" in html
     assert "&lt;Office&gt;" in html
+
+
+def test_digest_lists_jobs_alphabetically_by_title():
+    def job(slug, title, org):
+        return SimpleNamespace(
+            slug=slug,
+            title=title,
+            source_organization=org,
+            salary_min=None,
+            salary_max=None,
+            salary_period=None,
+            posted_at=datetime(2026, 3, 1, tzinfo=timezone.utc),
+        )
+
+    jobs = [
+        job("staff-b", "Staff Assistant", "Sen. Brown"),
+        job("comms", "communications director", "Rep. Smith"),
+        job("staff-a", "Staff Assistant", "Rep. Adams"),
+        job("analyst", "Budget Analyst", "CBO"),
+    ]
+
+    html = build_digest_html(jobs, "token-123", "https://hill-jobs.org")
+
+    positions = [html.index(f"/jobs/{slug}\"") for slug in ("analyst", "comms", "staff-a", "staff-b")]
+    assert positions == sorted(positions)
