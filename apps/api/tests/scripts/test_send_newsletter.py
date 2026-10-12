@@ -123,3 +123,26 @@ def test_dry_run_sends_nothing_and_records_nothing(db_session):
 
 def test_mask_hides_most_of_the_address():
     assert send_newsletter._mask("jane.doe@example.com") == "j***@example.com"
+
+
+def test_test_digest_goes_only_to_the_test_address(db_session):
+    db_session.add_all([
+        _job("new-comms", "communications", 1),
+        _job("new-tech", "technology", 2),
+        _job("old-comms", "communications", 10),
+        _subscriber("reader@example.com"),
+    ])
+    db_session.commit()
+    outbox = _Outbox()
+
+    total = send_newsletter.send_test_digest(
+        db_session, to="tester@example.com", api_key="key",
+        site_base_url="https://hill-jobs.org", send=outbox,
+    )
+
+    assert total == 2
+    [email] = outbox.sent
+    assert email["to"] == "tester@example.com"
+    assert email["subject"] == "[TEST] Hill Jobs Weekly: 2 new positions"
+    assert "/jobs/new-comms" in email["html"] and "/jobs/new-tech" in email["html"]
+    assert db_session.query(Subscriber).one().last_sent_at is None
