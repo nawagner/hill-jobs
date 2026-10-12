@@ -2,10 +2,16 @@
 
 ## 2026-10-12
 
+- Fix job categories: 142 of 342 open jobs were in the wrong one (e.g. 147 "Communications" jobs, mostly interns and staff assistants)
+  - Descriptions no longer decide the category from incidental words like "communication skills", "legal requirements" or "security clearance"
+  - Office and facilities titles (interns, staff assistants, schedulers, caseworkers, trades) are Operations; Capitol Police jobs are always Security
+  - Rule-order fixes ("Consumer Protection" policy advisor, "Business Systems Analyst") and `IT` is matched case-sensitively
+  - Existing jobs are re-categorized whenever ingestion sees them again
 - Turn on the weekly job-alert newsletter (#41 shipped the signup flow, but the sender never ran)
   - New `newsletter-cron` Railway service, Mondays 11:30 UTC
   - Fix `send_newsletter.py` imports, add `--dry-run`, mask subscriber emails in logs, add tests
   - Escape scraped job titles and office names in digest emails
+  - Group digest jobs by category, then list them alphabetically by title (was newest first)
 
 ## 2026-10-11
 

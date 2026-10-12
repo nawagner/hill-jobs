@@ -134,6 +134,12 @@ def _update_existing(job: Job, src: SourceJob, now: datetime) -> list[str]:
     job.raw_payload = src.raw_payload
     job.search_document = f"{src.title} {src.source_organization} {src.location_text or ''} {src.description_text}"
 
+    # Re-classify on every sighting so classifier fixes reach existing jobs
+    role_kind = classify_job(job.title, job.description_text or "", job.source_organization)
+    if job.role_kind != role_kind:
+        job.role_kind = role_kind
+        changed_fields.append("role_kind")
+
     # Re-open if it was previously closed but now seen again
     if job.status == "closed":
         job.status = "open"
