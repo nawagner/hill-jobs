@@ -7,6 +7,7 @@ from app.lib.email_templates import build_digest_html
 def test_digest_unsubscribe_link_uses_existing_preferences_route():
     job = SimpleNamespace(
         slug="policy-aide",
+        role_kind="policy",
         title="Policy Aide",
         source_organization="Senate Committee on Finance",
         salary_min=None,
@@ -24,6 +25,7 @@ def test_digest_unsubscribe_link_uses_existing_preferences_route():
 def test_digest_escapes_scraped_text():
     job = SimpleNamespace(
         slug="aide",
+        role_kind="operations",
         title="Aide <script>alert(1)</script> & Scheduler",
         source_organization="Rep. O'Neil <Office>",
         salary_min=None,
@@ -39,10 +41,11 @@ def test_digest_escapes_scraped_text():
     assert "&lt;Office&gt;" in html
 
 
-def test_digest_lists_jobs_alphabetically_by_title():
-    def job(slug, title, org):
+def test_digest_groups_jobs_by_category_then_title():
+    def job(slug, role_kind, title, org):
         return SimpleNamespace(
             slug=slug,
+            role_kind=role_kind,
             title=title,
             source_organization=org,
             salary_min=None,
@@ -52,13 +55,20 @@ def test_digest_lists_jobs_alphabetically_by_title():
         )
 
     jobs = [
-        job("staff-b", "Staff Assistant", "Sen. Brown"),
-        job("comms", "communications director", "Rep. Smith"),
-        job("staff-a", "Staff Assistant", "Rep. Adams"),
-        job("analyst", "Budget Analyst", "CBO"),
+        job("staff-b", "operations", "Staff Assistant", "Sen. Brown"),
+        job("press", "communications", "press secretary", "Rep. Smith"),
+        job("counsel", "legal", "Counsel", "Judiciary"),
+        job("staff-a", "operations", "Staff Assistant", "Rep. Adams"),
+        job("digital", "communications", "Digital Director", "Rep. Jones"),
+        job("analyst", "operations", "Budget Analyst", "CBO"),
     ]
 
     html = build_digest_html(jobs, "token-123", "https://hill-jobs.org")
 
-    positions = [html.index(f"/jobs/{slug}\"") for slug in ("analyst", "comms", "staff-a", "staff-b")]
+    expected = [
+        "Communications (2)", "/jobs/digital\"", "/jobs/press\"",
+        "Legal (1)", "/jobs/counsel\"",
+        "Operations (3)", "/jobs/analyst\"", "/jobs/staff-a\"", "/jobs/staff-b\"",
+    ]
+    positions = [html.index(marker) for marker in expected]
     assert positions == sorted(positions)

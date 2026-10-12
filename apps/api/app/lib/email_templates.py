@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from html import escape
+from itertools import groupby
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -53,24 +54,18 @@ def build_digest_html(
     jobs: list[Job], unsubscribe_token: str, site_base_url: str
 ) -> str:
     job_rows = []
-    # Alphabetical by title reads better than posting order, since every job is from the same week.
-    for job in sorted(jobs, key=lambda j: (j.title.strip().casefold(), (j.source_organization or "").casefold())):
-        salary = _format_salary(job)
-        salary_html = f'<span style="color:#059669;font-size:13px;">{salary}</span><br>' if salary else ""
-        posted = ""
-        if job.posted_at:
-            posted = job.posted_at.strftime("%b %d, %Y")
-
+    # Grouped by category, then alphabetical by title: every job is from the same
+    # week, so posting order just looks random.
+    for role_kind, group in groupby(sorted(jobs, key=_digest_sort_key), key=lambda j: _digest_sort_key(j)[0]):
+        group = list(group)
+        padding_top = 8 if not job_rows else 28
         job_rows.append(f"""\
     <tr>
-      <td style="padding:16px 0;border-bottom:1px solid #e2e8f0;">
-        <a href="{site_base_url}/jobs/{job.slug}" style="color:#1e40af;font-weight:600;text-decoration:none;font-size:15px;">
-          {escape(job.title)}
-        </a><br>
-        <span style="color:#475569;font-size:13px;">{escape(job.source_organization or "")}</span><br>
-        {salary_html}<span style="color:#94a3b8;font-size:12px;">{posted}</span>
+      <td style="padding:{padding_top}px 0 6px;border-bottom:2px solid #0f172a;color:#0f172a;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
+        {escape(role_kind.capitalize())} ({len(group)})
       </td>
     </tr>""")
+        job_rows.extend(_digest_job_row(job, site_base_url) for job in group)
 
     jobs_html = "\n".join(job_rows)
     preferences_url = f"{site_base_url}/preferences/{unsubscribe_token}"
@@ -109,3 +104,30 @@ def build_digest_html(
   </div>
 </body>
 </html>"""
+
+
+def _digest_sort_key(job: Job) -> tuple[str, str, str]:
+    return (
+        (job.role_kind or "other").casefold(),
+        job.title.strip().casefold(),
+        (job.source_organization or "").casefold(),
+    )
+
+
+def _digest_job_row(job: Job, site_base_url: str) -> str:
+    salary = _format_salary(job)
+    salary_html = f'<span style="color:#059669;font-size:13px;">{salary}</span><br>' if salary else ""
+    posted = ""
+    if job.posted_at:
+        posted = job.posted_at.strftime("%b %d, %Y")
+
+    return f"""\
+    <tr>
+      <td style="padding:16px 0;border-bottom:1px solid #e2e8f0;">
+        <a href="{site_base_url}/jobs/{job.slug}" style="color:#1e40af;font-weight:600;text-decoration:none;font-size:15px;">
+          {escape(job.title)}
+        </a><br>
+        <span style="color:#475569;font-size:13px;">{escape(job.source_organization or "")}</span><br>
+        {salary_html}<span style="color:#94a3b8;font-size:12px;">{posted}</span>
+      </td>
+    </tr>"""
