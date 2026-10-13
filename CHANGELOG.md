@@ -7,6 +7,7 @@
   - New phrasings: "opening for an <Title>", "The <Title> serves/supports/will", "for a paid Spring 2027 internship position", "to serve as <Title>" without an article
   - Lowercase fragments are only titles when they name a job ("press intern" → "Press Intern"); internship titles include their term ("Fall 2026 Interns")
   - Existing rows get the new titles on the next ingest (matched by MEM number, so no duplicates)
+- Run unit tests on pull requests; live scrape tests still run only on pushes to main and manual runs
 
 ## 2026-10-12
 
