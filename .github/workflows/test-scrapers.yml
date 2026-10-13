@@ -1,10 +1,14 @@
 # Daily ingestion runs on Railway (ingest-cron service), not here.
 # GitHub disables scheduled workflows after 60 days without repo activity,
 # which silently stopped ingestion in August 2026.
+# Pull requests run the unit tests only; the live scrape tests hit the real
+# job sites, so they run on pushes to main and manual runs.
 name: Test
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -30,6 +34,7 @@ jobs:
         run: uv sync
 
       - name: Install Playwright browsers
+        if: github.event_name != 'pull_request'
         working-directory: apps/api
         run: uv run playwright install --with-deps chromium
 
@@ -38,6 +43,7 @@ jobs:
         run: uv run pytest tests/ -v --ignore=tests/ingest/test_live_scrape.py
 
       - name: Run live scrape tests
+        if: github.event_name != 'pull_request'
         working-directory: apps/api
         env:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}

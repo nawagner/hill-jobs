@@ -160,3 +160,54 @@ def test_closed_domewatch_job_does_not_block_hvaps(db_session):
     result = upsert_jobs(db_session, [hvaps_job], now)
     assert result.created == 1
     assert result.skipped == 0
+
+
+def test_hvaps_title_fix_updates_existing_row(db_session):
+    """A better parsed title updates the existing HVAPS row (matched by MEM number)
+    instead of inserting a new one, even when Domewatch now has the same title."""
+    t1 = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    t2 = datetime(2026, 10, 2, tzinfo=timezone.utc)
+
+    hvaps_kwargs = dict(
+        source_system="house-hvaps",
+        source_job_id="MEM-293-26",
+        source_organization="Rep. Dina Titus",
+    )
+    upsert_jobs(db_session, [_make_source_job(**hvaps_kwargs, title="Unknown Position")], t1)
+    upsert_jobs(db_session, [_make_source_job(
+        source_system="house-dems-resumebank",
+        source_job_id="DW-500",
+        source_organization="Rep. Dina Titus",
+        title="Spring 2027 Internship",
+    )], t1)
+
+    result = upsert_jobs(
+        db_session, [_make_source_job(**hvaps_kwargs, title="Spring 2027 Internship")], t2
+    )
+    assert (result.updated, result.created, result.skipped) == (1, 0, 0)
+
+    hvaps_jobs = db_session.query(Job).filter_by(source_system="house-hvaps").all()
+    assert len(hvaps_jobs) == 1
+    assert hvaps_jobs[0].title == "Spring 2027 Internship"
+    assert hvaps_jobs[0].slug == "house-hvaps-mem-293-26"
+
+
+def test_hvaps_internship_not_deduped_against_other_term(db_session):
+    """HVAPS internship titles carry their term, so a different term isn't a duplicate."""
+    now = datetime.now(timezone.utc)
+
+    upsert_jobs(db_session, [_make_source_job(
+        source_system="house-dems-resumebank",
+        source_job_id="DW-123",
+        source_organization="Rep. Joaquin Castro",
+        title="Legislative Internship - Spring 2027",
+    )], now)
+
+    result = upsert_jobs(db_session, [_make_source_job(
+        source_system="house-hvaps",
+        source_job_id="MEM-290-26",
+        source_organization="Rep. Joaquin Castro",
+        title="Fall 2026 Legislative Internship",
+    )], now)
+    assert result.created == 1
+    assert result.skipped == 0
