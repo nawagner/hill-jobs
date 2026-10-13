@@ -1,7 +1,13 @@
+import json
+from pathlib import Path
+
+import pytest
+
 from app.ingest.hvaps_pdf_parser import (
     _extract_organization,
     _extract_title,
     _extract_title_from_heading,
+    _extract_title_from_lines,
     _extract_location,
     _extract_salary_text,
     _normalize_org_name,
@@ -9,6 +15,8 @@ from app.ingest.hvaps_pdf_parser import (
     _split_into_listings,
     _strip_leading_qualifiers,
 )
+
+FIXTURES = Path(__file__).parent.parent / "fixtures" / "hvaps"
 
 
 # --- Organization extraction ---
@@ -308,7 +316,7 @@ def test_extract_org_district_comma():
 
 def test_extract_title_seeks_interns():
     chunk = "Congressman Mike Levin (CA-49) seeks press and legislative interns for his Washington, D.C., office."
-    assert _extract_title(chunk) == "press and legislative interns"
+    assert _extract_title(chunk) == "Press and Legislative Interns"
 
 
 def test_extract_title_seeking_interns():
@@ -461,3 +469,365 @@ def test_extract_title_seeks_with_comma_qualifiers():
         "and experienced Legislative Director for the Washington, DC office."
     )
     assert _extract_title(chunk) == "Legislative Director"
+
+
+# --- Titles from real listings that used to get fragments or headers ---
+# Opening lines of listings from the 2026 bulletins. Each one used to be titled
+# with a section header ("SUMMARY:"), "Unknown Position" or a sentence fragment.
+
+@pytest.mark.parametrize(
+    "chunk, expected",
+    [
+    # section header "SUMMARY:"
+    pytest.param(
+        (
+            "MEM-189-26\n"
+            "SUMMARY:\n"
+            "Congresswoman Valerie P. Foushee (NC-04) seeks an organized, motivated, and service-\n"
+            "oriented Staff Assistant to join her Durham office. This entry-level, full-time, on-site"
+        ),
+        "Staff Assistant",
+        id="MEM-189-26",
+    ),
+    # "The <Title> serves" (was "Requirements:")
+    pytest.param(
+        (
+            "MEM-200-26\n"
+            "The Legislative Director serves as the Member’s chief policy advisor and leader of the\n"
+            "office’s Legislative Team. The Legislative Director’s primary responsibilities are to manage\n"
+            "the Legislative Team, advise the Member on legislation, and direct the development of\n"
+            "policy positions and legislative initiatives."
+        ),
+        "Legislative Director",
+        id="MEM-200-26",
+    ),
+    # "position of <Title>" (was "POSITION OVERVIEW")
+    pytest.param(
+        (
+            "MEM-179-26\n"
+            "POSITION OVERVIEW\n"
+            "Representative Raul Ruiz, M.D. is a Senior Member of the Energy and Commerce\n"
+            "Committee and former Chair of the Congressional Hispanic Caucus. Interested and\n"
+            "qualified candidates for the position of Executive Assistant and Scheduler in his"
+        ),
+        "Executive Assistant and Scheduler",
+        id="MEM-179-26",
+    ),
+    # "serve as <Title>" (was "self- starter")
+    pytest.param(
+        (
+            "MEM-226-26\n"
+            "Congresswoman Debbie Wasserman Schultz seeks an organized and motivated self-\n"
+            "starter to serve as Scheduler in her fast-paced Washington, D.C. office. Candidates are"
+        ),
+        "Scheduler",
+        id="MEM-226-26",
+    ),
+    # "for a paid Spring 2027 internship position" (was "Unknown Position")
+    pytest.param(
+        (
+            "MEM-293-26\n"
+            "The office of Congresswoman Dina Titus (NV-01) seeks highly motivated candidates for a\n"
+            "paid Spring 2027 internship position in our Las Vegas office."
+        ),
+        "Spring 2027 Internship",
+        id="MEM-293-26",
+    ),
+    # "seeks ... interns" (was "Unknown Position")
+    pytest.param(
+        (
+            "MEM-118-26\n"
+            "The Office of U.S. Representative Pramila Jayapal (WA-07) seeks highly motivated,\n"
+            "organized, and dedicated interns to serve for the Fall of 2026 in the Representative’s"
+        ),
+        "Fall 2026 Interns",
+        id="MEM-118-26",
+    ),
+    # "join as a fall intern 2026" (was "All applicants can submit ...")
+    pytest.param(
+        (
+            "MEM-223-26\n"
+            "Congresswoman Nancy Mace's District Office (Daniel Island) is seeking students with a\n"
+            "strong interest in political science, public service, and communication to join as a fall\n"
+            "intern 2026.\n"
+            "The internship can be full-time or part-time and will run from mid-August through\n"
+            "November.\n"
+            "All applicants can submit their information using this link:"
+        ),
+        "Fall 2026 Intern",
+        id="MEM-223-26",
+    ),
+    # "opening for an <Title>" (was "Congressman Ro Khanna’s office ...")
+    pytest.param(
+        (
+            "MEM-196-26\n"
+            "Congressman Ro Khanna’s office in Washington, DC has an immediate opening for an\n"
+            "Operations Assistant help manage office operations, help drive and staff the member in"
+        ),
+        "Operations Assistant",
+        id="MEM-196-26",
+    ),
+    # "The <Title> supports" (was "communicate and liaise ...")
+    pytest.param(
+        (
+            "MEM-238-26\n"
+            "The Communications and Correspondence Assistant supports district-based efforts to\n"
+            "communicate and liaise with stakeholders and key audiences in person and across\n"
+            "platforms. The Communications and Correspondence Assistant manages the"
+        ),
+        "Communications and Correspondence Assistant",
+        id="MEM-238-26",
+    ),
+    # "A <Title> for HOLC assists" (was "debated in Congress, ...")
+    pytest.param(
+        (
+            "MEM-281-26\n"
+            "The Office of the Legislative Counsel of the U.S. House of Representatives (HOLC)\n"
+            "transforms the policy goals of Members and committees of the House into clear, concise,\n"
+            "and legally effective legislative language to help ensure that the legislation introduced and\n"
+            "debated in Congress, and the enacted laws of the United States, clearly express\n"
+            "congressional intent. HOLC carries out this mission by providing expert legislative drafting\n"
+            "services and related legal services on a non-partisan, impartial, and confidential basis.\n"
+            "Position Description:\n"
+            "A Paralegal for HOLC assists the attorneys and teams of the Office to meet the legislative"
+        ),
+        "Paralegal",
+        id="MEM-281-26",
+    ),
+    # "organized and detail-oriented <Title>"
+    pytest.param(
+        (
+            "MEM-227-26\n"
+            "Rep. Dina Titus seeks an organized and detail-oriented Staff Assistant for her Las Vegas\n"
+            "office. Primary responsibilities include managing the front office, answering and logging"
+        ),
+        "Staff Assistant",
+        id="MEM-227-26",
+    ),
+    # "an internship during the 2026 Fall term" (was "an internship")
+    pytest.param(
+        (
+            "MEM-199-26\n"
+            "The Washington, D.C. Office of Representative Joe Morelle is now accepting applications for\n"
+            "an internship during the 2026 Fall term. Applicants must be based in Washington, D.C. for"
+        ),
+        "Fall 2026 Internship",
+        id="MEM-199-26",
+    ),
+    # "Fall 2026 paid internships" (was "paid internships")
+    pytest.param(
+        (
+            "MEM-221-26\n"
+            "The office of Congressman Juan Ciscomani (AZ-06) is accepting applications for Fall\n"
+            "2026 paid internships in our Washington D.C. Office."
+        ),
+        "Fall 2026 Internships",
+        id="MEM-221-26",
+    ),
+    # "seeks press intern" (was "communications team")
+    pytest.param(
+        (
+            "MEM-233-26\n"
+            "Congressman Mike Levin (CA-49) seeks press intern for his Washington, D.C., office for\n"
+            "the Fall 2026 term.\n"
+            "This internship provide an opportunity for undergraduate students, graduate students, and\n"
+            "recent graduates to learn more about the workings of a Congressional office, the legislative"
+        ),
+        "Fall 2026 Press Intern",
+        id="MEM-233-26",
+    ),
+    # "POSITION OPENING: DISTRICT DIRECTOR"
+    pytest.param(
+        (
+            "MEM-216-26\n"
+            "POSITION OPENING: DISTRICT DIRECTOR\n"
+            "District Office | Reports to the Chief of Staff | Full-Time, Exempt\n"
+            "About the Office\n"
+            "A New Jersey Congressman is seeking a motivated District Director to run his multiple"
+        ),
+        "District Director",
+        id="MEM-216-26",
+    ),
+    # "JOB POSTING: DISTRICT PRESS/DIGITAL ASSISTANT"
+    pytest.param(
+        (
+            "MEM-182-26\n"
+            "JOB POSTING: DISTRICT PRESS/DIGITAL ASSISTANT\n"
+            "Congresswoman Luz Rivas (CA-29) is seeking a motivated, creative, and"
+        ),
+        "District Press/Digital Assistant",
+        id="MEM-182-26",
+    ),
+    # "COMMUNICATIONS INTERNSHIP"
+    pytest.param(
+        (
+            "MEM-231-26\n"
+            "COMMUNICATIONS INTERNSHIP\n"
+            "The DC office of Representative Marilyn Strickland (WA-10) is currently accepting"
+        ),
+        "Communications Internship",
+        id="MEM-231-26",
+    ),
+    # "Seeks <Title>." with no article (was "fellow")
+    pytest.param(
+        (
+            "MEM-186-26\n"
+            "Senior Republican Member of House Financial Services Committee Seeks\n"
+            "Legislative/Financial Services Fellow.\n"
+            "A senior Republican member serving on the House Financial Services Committee is"
+        ),
+        "Legislative/Financial Services Fellow",
+        id="MEM-186-26",
+    ),
+    # "<Title> with excellent writing skills"
+    pytest.param(
+        (
+            "MEM-214-26\n"
+            "Western Conservative Member seeks an energetic and proactive Press\n"
+            "Assistant/Secretary with excellent writing skills to serve in the Member's Washington,"
+        ),
+        "Press Assistant/Secretary",
+        id="MEM-214-26",
+    ),
+    # "accepting applicants for a paid Fall Legislative Internship"
+    pytest.param(
+        (
+            "MEM-241-26\n"
+            "The DC office of Representative Marilyn Strickland (WA-10) is currently\n"
+            "accepting applicants for a paid Fall Legislative Internship with a start date\n"
+            "of Monday, August 24, 2026, until December 2026, with the potential to"
+        ),
+        "Fall Legislative Internship",
+        id="MEM-241-26",
+    ),
+    # "is seeking interns" (was "The Washington, D.C. office of ...")
+    pytest.param(
+        (
+            "MEM-201-26\n"
+            "The Washington, D.C. office of Congresswoman Gwen Moore (WI-04) is seeking\n"
+            "interns for the upcoming Fall 2026 term."
+        ),
+        "Fall 2026 Interns",
+        id="MEM-201-26",
+    ),
+    # "seeks legislative and communications interns"
+    pytest.param(
+        (
+            "MEM-164-26\n"
+            "The Office of U.S. Representative Mark Takano (CA-39) seeks legislative and\n"
+            "communications interns to serve for the Fall of 2026 in the Representative’s Washington,"
+        ),
+        "Fall 2026 Legislative and Communications Interns",
+        id="MEM-164-26",
+    ),
+    # "the <Title> will support" (was "recommendations, and ...")
+    pytest.param(
+        (
+            "MEM-193-26\n"
+            "Under the supervision of the office’s Legislative Counsel, the Law Clerk will support the\n"
+            "Congresswoman’s legislative and oversight work by conducting legal and policy research,\n"
+            "preparing for and staffing Judiciary Committee hearings and markups, developing vote"
+        ),
+        "Law Clerk",
+        id="MEM-193-26",
+    ),
+    # "has an opening for a <Title>" (was "answering telephones; ...")
+    pytest.param(
+        (
+            "MEM-207-26\n"
+            "The Committee on Ethics has an opening for a Staff Assistant. Duties include assisting the\n"
+            "technology needs of Committee staff; editing and maintaining the Committee’s website;\n"
+            "answering telephones; assisting with the tracking and processing of committee"
+        ),
+        "Staff Assistant",
+        id="MEM-207-26",
+    ),
+    # "part-time or full-time, energetic interns"
+    pytest.param(
+        (
+            "MEM-183-26\n"
+            "The Democratic Staff of the Committee on Rules is seeking part-time or full-time, energetic\n"
+            "interns for the fall (September/October – mid-December). Our interns work closely with"
+        ),
+        "Interns",
+        id="MEM-183-26",
+    ),
+    # "offers paid internships" (was "The Office of Rep. Josh Harder offers ...")
+    pytest.param(
+        (
+            "MEM-198-26\n"
+            "The Office of Rep. Josh Harder offers paid internships in our Washington office. Our\n"
+            "hands-on internship program offers highly motivated undergraduates, graduate students,"
+        ),
+        "Internships",
+        id="MEM-198-26",
+    ),
+    # "a short-term internship opportunity"
+    pytest.param(
+        (
+            "MEM-289-26\n"
+            "The Committee on House Administration (Democratic Staff) is now accepting applications\n"
+            "for a short-term internship opportunity during the late fall 2026 term. Applicants should"
+        ),
+        "Fall 2026 Internship",
+        id="MEM-289-26",
+    ),
+    ],
+)
+def test_parse_listing_title_from_real_listing(chunk, expected):
+    assert _parse_listing(chunk)["title"] == expected
+
+
+def test_titles_for_listings_open_on_2026_10_12():
+    """Every HVAPS listing open on 2026-10-12, so parser changes show up as title diffs.
+
+    `text` is the first 1500 characters of each listing, which is all that title
+    extraction reads. When a change improves a title, update `expected_title`.
+    """
+    listings = json.loads((FIXTURES / "listings_2026-10-12.json").read_text())
+    titles = {item["source_job_id"]: _parse_listing(item["text"])["title"] for item in listings}
+    assert titles == {item["source_job_id"]: item["expected_title"] for item in listings}
+
+
+@pytest.mark.parametrize(
+    "header", ["SUMMARY:", "POSITION OVERVIEW", "Requirements:", "About the Office"]
+)
+def test_heading_skips_section_header(header):
+    chunk = f"MEM-001-26\n{header}\nThe office seeks a Staff Assistant."
+    assert _extract_title_from_heading(chunk) is None
+
+
+def test_heading_strips_posting_prefix_and_all_caps():
+    chunk = "MEM-216-26\nPOSITION OPENING: DISTRICT DIRECTOR\nDistrict Office | Reports to the Chief of Staff"
+    assert _extract_title_from_heading(chunk) == "District Director"
+
+
+def test_extract_title_rejects_lowercase_fragment():
+    """A lowercase phrase that doesn't name a job isn't a title."""
+    chunk = "MEM-001-26\nThe office seeks an organized and motivated self-\nstarter to join our team."
+    assert _extract_title(chunk) is None
+
+
+def test_extract_title_skips_member_possessive():
+    chunk = "MEM-001-26\nThe office seeks someone to serve as the Member\u2019s chief policy advisor."
+    assert _extract_title(chunk) is None
+
+
+def test_extract_title_keeps_parenthesized_acronym():
+    chunk = (
+        "MEM-291-26\nThe Democratic staff of the House Natural Resources Committee (HNRC) Subcommittee\n"
+        "on Energy and Mineral Resources seeks a Professional Staff Member (PSM) or Counsel to\n"
+        "play a lead role in planning, coordinating, and executing the legislative and oversight"
+    )
+    assert _extract_title(chunk) == "Professional Staff Member (PSM) or Counsel"
+
+
+def test_lines_fallback_skips_fragments_and_office_names():
+    chunk = (
+        "MEM-001-26\n"
+        "communicate and liaise with stakeholders and key audiences in person and across\n"
+        "All applicants can submit their information using this link:\n"
+        "Internships | Representative Nancy Mace\n"
+        "Washington, D.C. Internship Responsibilities"
+    )
+    assert _extract_title_from_lines(chunk, "MEM-001-26") is None

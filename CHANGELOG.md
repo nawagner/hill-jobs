@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-13
+
+- Fix HVAPS job titles: 38 of 65 open listings had a section header, "Unknown Position" or a sentence fragment as their title (e.g. "SUMMARY:", "self- starter", "communications team")
+  - Section headers ("SUMMARY:", "POSITION OVERVIEW", "Requirements:") are skipped; "POSITION OPENING: DISTRICT DIRECTOR" becomes "District Director"
+  - New phrasings: "opening for an <Title>", "The <Title> serves/supports/will", "for a paid Spring 2027 internship position", "to serve as <Title>" without an article
+  - Lowercase fragments are only titles when they name a job ("press intern" → "Press Intern"); internship titles include their term ("Fall 2026 Interns")
+  - Existing rows get the new titles on the next ingest (matched by MEM number, so no duplicates)
+
 ## 2026-10-12
 
 - Fix job categories: 142 of 342 open jobs were in the wrong one (e.g. 147 "Communications" jobs, mostly interns and staff assistants)
