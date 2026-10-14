@@ -11,6 +11,7 @@ import {
   unsubscribe,
 } from "../lib/api";
 import { Filters } from "../components/filters";
+import { CapitolLoader } from "../components/capitol-art";
 
 function resolveCommitteeSelection(
   storedCommittee: string,
@@ -145,10 +146,7 @@ export function Preferences() {
   if (loading) {
     return (
       <main className="mx-auto max-w-md px-6 py-20">
-        <div className="flex justify-center py-8" role="status">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-navy-200 border-t-navy-600" />
-          <span className="sr-only">Loading preferences...</span>
-        </div>
+        <CapitolLoader label="Loading preferences..." className="py-8" />
       </main>
     );
   }

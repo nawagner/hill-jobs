@@ -16,7 +16,7 @@ export function JobCard({ job }: { job: JobListItem }) {
   const { employer, office } = getEmployerDisplay(job);
 
   return (
-    <article className="group relative bg-white rounded-lg border border-slate-200 p-5 transition-all duration-200 hover:border-navy-300 hover:shadow-md hover:shadow-navy-900/5">
+    <article className="group relative bg-white rounded-lg border border-slate-200 p-5 transition-all duration-200 hover:border-navy-300 hover:shadow-md hover:shadow-navy-900/5 before:pointer-events-none before:absolute before:inset-x-4 before:-top-px before:h-0.5 before:origin-center before:scale-x-0 before:rounded-full before:bg-gold-400 before:transition-transform before:duration-300 before:content-[''] hover:before:scale-x-100 focus-within:before:scale-x-100 motion-reduce:before:transition-none">
       <div className="flex items-start justify-between gap-3 mb-3">
         <Link
           to={`/jobs/${job.slug}`}

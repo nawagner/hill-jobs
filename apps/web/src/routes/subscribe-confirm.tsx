@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import { confirmSubscription } from "../lib/api";
+import { CapitolLoader } from "../components/capitol-art";
 
 export function SubscribeConfirm() {
   const { token } = useParams<{ token: string }>();
@@ -26,12 +27,7 @@ export function SubscribeConfirm() {
 
   return (
     <main className="mx-auto max-w-md px-6 py-20 text-center">
-      {status === "loading" && (
-        <div className="flex justify-center py-8" role="status">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-navy-200 border-t-navy-600" />
-          <span className="sr-only">Confirming...</span>
-        </div>
-      )}
+      {status === "loading" && <CapitolLoader label="Confirming..." className="py-8" />}
 
       {status === "success" && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-8">
