@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router";
 import type { JobDetail as JobDetailType } from "../lib/api";
 import { getJob, formatDate, formatRoleKind, formatSalary, getEmployerDisplay } from "../lib/api";
 import { StatusBadge } from "../components/status-badge";
+import { CapitolLoader } from "../components/capitol-art";
 
 export function JobDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -69,9 +70,7 @@ export function JobDetail() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-32">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-navy-200 border-t-navy-600" />
-      </div>
+      <CapitolLoader label="Loading job..." className="py-32" />
     );
   }
 

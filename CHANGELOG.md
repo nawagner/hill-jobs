@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-14
+
+- Add Capitol motion graphics to the site
+  - Home page hero: a gold line drawing of the Capitol's west front draws itself on the first visit (about 3 seconds), the Statue of Freedom glints, and flags rise and ripple over the Senate and House wings
+  - Matching accents: the header logo is a dome that draws itself and glints on hover, loading spinners are a dome drawing itself, and job cards get a gold line along the top on hover
+  - Respects reduced-motion settings; plain SVG and CSS, no new dependencies
+
 ## 2026-10-13
 
 - Fix HVAPS job titles: 38 of 65 open listings had a section header, "Unknown Position" or a sentence fragment as their title (e.g. "SUMMARY:", "self- starter", "communications team")

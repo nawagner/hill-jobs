@@ -37,3 +37,171 @@
     @apply mb-1.5;
   }
 }
+
+/* Capitol line drawings (components/capitol-art.tsx). Final states are the
+   base styles; the animations only run from the starting state to them, so
+   turning animations off shows the finished drawing. */
+@layer components {
+  .capitol-stroke {
+    stroke-opacity: 0.55;
+    animation: capitol-draw var(--dur, 0.8s) cubic-bezier(0.45, 0, 0.25, 1) var(--delay, 0s) backwards;
+  }
+
+  .capitol-detail {
+    stroke-opacity: 0.3;
+    stroke-width: 1;
+  }
+
+  .capitol-logo .capitol-stroke {
+    stroke-opacity: 1;
+  }
+
+  /* Chamber flags rise once the wings are drawn, then ripple (SMIL) */
+  .capitol-flag {
+    animation: capitol-flag-raise 0.9s cubic-bezier(0.3, 0, 0.2, 1) 1.2s backwards;
+  }
+
+  .capitol-flag-outline {
+    fill: currentColor;
+    fill-opacity: 0.1;
+    stroke: currentColor;
+    stroke-width: 1;
+    stroke-opacity: 0.8;
+  }
+
+  .capitol-flag-canton {
+    fill: currentColor;
+    fill-opacity: 0.4;
+  }
+
+  .capitol-flag-stripes {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 0.8;
+    stroke-opacity: 0.6;
+  }
+
+  /* Light catching the Statue of Freedom after the dome is drawn */
+  .capitol-glint-glow {
+    opacity: 0.5;
+    animation: capitol-glow 1.2s ease-out 2.3s backwards;
+  }
+
+  .capitol-glint-star {
+    opacity: 0;
+    transform-origin: 500px 36px;
+    animation: capitol-glint 1.1s ease-out 2.3s backwards;
+  }
+
+  .capitol-logo-glint,
+  .capitol-logo-glint-hover {
+    opacity: 0;
+    transform-origin: 12px 3px;
+  }
+
+  .capitol-logo-glint {
+    animation: capitol-glint 0.9s ease-out 1s backwards;
+  }
+
+  .group:hover .capitol-logo-glint-hover {
+    animation: capitol-glint 0.9s ease-out;
+  }
+
+  .capitol-art.is-static,
+  .capitol-art.is-static * {
+    animation: none;
+  }
+
+  .capitol-loader path {
+    animation: capitol-loader 1.8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .capitol-art *,
+    .capitol-logo * {
+      animation: none !important;
+    }
+
+    .capitol-loader path {
+      animation: capitol-pulse 1.8s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes capitol-draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  1% {
+    opacity: 1;
+  }
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes capitol-flag-raise {
+  from {
+    transform: translateY(36px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+}
+
+@keyframes capitol-glow {
+  from {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+}
+
+@keyframes capitol-glint {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.15) rotate(30deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(90deg);
+  }
+}
+
+@keyframes capitol-loader {
+  0% {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  50% {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dasharray: 1;
+    stroke-dashoffset: -1;
+    opacity: 0;
+  }
+}
+
+@keyframes capitol-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}

@@ -6,6 +6,7 @@ import { SearchForm } from "../components/search-form";
 import { Filters } from "../components/filters";
 import { JobCard } from "../components/job-card";
 import { Pagination } from "../components/pagination";
+import { CapitolHeroArt, CapitolLoader } from "../components/capitol-art";
 
 export function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -97,21 +98,16 @@ export function Home() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-navy-900 py-16 md:py-24">
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
-          }}
-        />
+      <section className="relative overflow-hidden bg-navy-900 pb-8 pt-16 sm:pb-16 md:py-24">
+        {/* Wide enough that the flags over the wings clear the search box */}
+        <CapitolHeroArt className="pointer-events-none absolute bottom-0 left-1/2 w-[150%] max-w-none -translate-x-1/2 text-gold-400 md:w-[72rem]" />
         <div className="relative mx-auto max-w-5xl px-6 text-center">
-          <h1 className="font-display text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-white [text-shadow:0_0_16px_#162237,0_0_32px_#162237] md:text-5xl lg:text-6xl">
             Your Next Career on
             <br />
             <span className="text-gold-400">the Hill</span> Starts Here
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base text-navy-200 font-body md:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base text-navy-200 font-body [text-shadow:0_0_10px_#162237,0_0_20px_#162237] md:text-lg">
             Search open positions across the Senate, House, Capitol Police,
             Library of Congress, and Architect of the Capitol.
           </p>
@@ -162,12 +158,7 @@ export function Home() {
           </div>
         )}
 
-        {loading && (
-          <div className="flex justify-center py-20" role="status">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-navy-200 border-t-navy-600" />
-            <span className="sr-only">Loading jobs...</span>
-          </div>
-        )}
+        {loading && <CapitolLoader label="Loading jobs..." className="py-20" />}
 
         {!loading && results && results.items.length === 0 && (
           <div className="py-20 text-center">
