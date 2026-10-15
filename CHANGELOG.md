@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-15
+
+- Redraw the hero's Capitol dome from an 1897 Library of Congress photo; the top looked like a candle
+  - The Statue of Freedom is a robed figure with a shield and crested helmet, standing on a globe; her glint now fades out instead of leaving a flame-like glow
+  - Taller lantern with six columns and a bell-shaped cap; lower dome shell with a row of windows; shorter drum
+  - Columns and windows crowd toward the edges of the dome and its rings curve, as seen from the ground
+
 ## 2026-10-14
 
 - Add Capitol motion graphics to the site

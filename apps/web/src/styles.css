@@ -81,16 +81,26 @@
     stroke-opacity: 0.6;
   }
 
-  /* Light catching the Statue of Freedom after the dome is drawn */
+  /* The bronze Statue of Freedom: outlined, then filled in */
+  .capitol-statue {
+    fill: currentColor;
+    fill-opacity: 0.55;
+    stroke-opacity: 0.8;
+    animation:
+      capitol-draw var(--dur, 0.8s) cubic-bezier(0.45, 0, 0.25, 1) var(--delay, 0s) backwards,
+      capitol-fill 0.4s ease-out 2.5s backwards;
+  }
+
+  /* A brief glint of light on the statue once the dome is drawn */
   .capitol-glint-glow {
-    opacity: 0.5;
-    animation: capitol-glow 1.2s ease-out 2.3s backwards;
+    opacity: 0;
+    animation: capitol-glow 1.2s ease-out 2.6s backwards;
   }
 
   .capitol-glint-star {
     opacity: 0;
-    transform-origin: 500px 36px;
-    animation: capitol-glint 1.1s ease-out 2.3s backwards;
+    transform-origin: 500px 53.5px;
+    animation: capitol-glint 1.1s ease-out 2.6s backwards;
   }
 
   .capitol-logo-glint,
@@ -158,7 +168,13 @@
     opacity: 0;
   }
   35% {
-    opacity: 1;
+    opacity: 0.8;
+  }
+}
+
+@keyframes capitol-fill {
+  from {
+    fill-opacity: 0;
   }
 }
 
