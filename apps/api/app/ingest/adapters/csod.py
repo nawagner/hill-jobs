@@ -24,6 +24,11 @@ _EXTRACT_JOBS_JS = (
     "})))"
 )
 
+# The career-site SPA loads its listings from this job-search API. Its answer is
+# how we tell "no openings" ({"status": "Success", "data": {"totalCount": 0}})
+# apart from a scrape that failed.
+_JOB_SEARCH_PATH = "/rec-job-search/external/jobs"
+
 # JS snippet to extract detail fields from a CSOD requisition detail page.
 _EXTRACT_DETAIL_JS = (
     "JSON.stringify({"
@@ -91,6 +96,10 @@ USCP_CONFIG = CsodConfig(
 
 
 class CsodAdapter:
+    # An empty result means the site's job search confirmed 0 openings; any
+    # scrape failure raises instead.
+    confirms_empty = True
+
     def __init__(self, config: CsodConfig):
         self.config = config
         self.source_system = config.source_system
@@ -98,40 +107,42 @@ class CsodAdapter:
     def fetch_jobs(self, client: httpx.Client) -> list[SourceJob]:
         """Fetch jobs using Playwright to render the JS-driven career site."""
         listing_url = f"{self.config.base_url}{self.config.listing_path}"
-        try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                try:
-                    jobs = self._scrape_listing(page, listing_url)
-                    if not jobs:
-                        logger.warning("CSOD %s: no jobs found", self.config.source_system)
-                        return []
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            try:
+                jobs = self._scrape_listing(page, listing_url)
+                if not jobs:
+                    logger.info("CSOD %s: job search confirmed no openings", self.config.source_system)
+                    return []
 
-                    logger.info("CSOD %s: found %d jobs via Playwright", self.config.source_system, len(jobs))
+                logger.info("CSOD %s: found %d jobs via Playwright", self.config.source_system, len(jobs))
 
-                    enriched: list[SourceJob] = []
-                    for job in jobs:
-                        detail = _fetch_detail(page, job.source_url, self.config)
-                        if detail:
-                            enriched.append(_apply_detail(job, detail))
-                        else:
-                            enriched.append(job)
-                    return enriched
-                finally:
-                    browser.close()
-        except Exception:
-            logger.exception("CSOD %s: Playwright scrape failed", self.config.source_system)
-            return []
+                enriched: list[SourceJob] = []
+                for job in jobs:
+                    detail = _fetch_detail(page, job.source_url, self.config)
+                    if detail:
+                        enriched.append(_apply_detail(job, detail))
+                    else:
+                        enriched.append(job)
+                return enriched
+            finally:
+                browser.close()
 
     def _scrape_listing(self, page, listing_url: str) -> list[SourceJob]:
-        page.goto(listing_url, wait_until="domcontentloaded")
+        with page.expect_response(_is_job_search, timeout=30000) as search:
+            page.goto(listing_url, wait_until="domcontentloaded")
+        total = _job_search_total(search.value.status, search.value.json())
+        if total == 0:
+            return []
+
         try:
             page.wait_for_selector("a[href*=requisition]", timeout=15000)
         except PlaywrightTimeout:
-            logger.warning("CSOD %s: timed out waiting for job links", self.config.source_system)
             _dump_debug_artifacts(page, self.config.source_system, "listing-timeout")
-            return []
+            raise RuntimeError(
+                f"CSOD {self.config.source_system}: job search found {total} jobs but no job links rendered"
+            )
 
         raw = page.evaluate(_EXTRACT_JOBS_JS)
         items = json.loads(raw) if isinstance(raw, str) else raw
@@ -159,7 +170,23 @@ class CsodAdapter:
                     raw_payload=item,
                 )
             )
+        if not jobs:
+            # Never report "no openings" when the job search said there were some.
+            raise RuntimeError(f"CSOD {self.config.source_system}: job search found {total} jobs but none parsed")
         return jobs
+
+
+def _is_job_search(response) -> bool:
+    return response.request.method == "POST" and _JOB_SEARCH_PATH in response.url
+
+
+def _job_search_total(http_status: int, body: dict) -> int:
+    """Number of openings the job-search API reports; raises unless it's a clean answer."""
+    data = body.get("data") if isinstance(body, dict) else None
+    total = data.get("totalCount") if isinstance(data, dict) else None
+    if not isinstance(total, int) or http_status != 200 or body.get("status") != "Success":
+        raise RuntimeError(f"CSOD job search failed: HTTP {http_status}, {str(body)[:200]}")
+    return total
 
 
 def _dump_debug_artifacts(page, source_system: str, tag: str) -> None:

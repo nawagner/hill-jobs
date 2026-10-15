@@ -1,3 +1,5 @@
+import pytest
+
 from app.ingest.adapters.csod import (
     CsodConfig,
     HOUSE_CAO_CONFIG,
@@ -5,6 +7,7 @@ from app.ingest.adapters.csod import (
     HOUSE_GREEN_GOLD_CONFIG,
     HOUSE_SAA_CONFIG,
     _apply_detail,
+    _job_search_total,
 )
 from app.schemas.ingest import SourceJob
 
@@ -56,3 +59,26 @@ def test_apply_detail_enriches_job():
     assert enriched.closing_at is not None
     assert enriched.closing_at.month == 3
     assert enriched.closing_at.day == 23
+
+
+def test_job_search_total_reads_confirmed_count():
+    body = {"status": "Success", "data": {"totalCount": 0, "requisitions": []}}
+    assert _job_search_total(200, body) == 0
+    body = {"status": "Success", "data": {"totalCount": 2, "requisitions": [{}, {}]}}
+    assert _job_search_total(200, body) == 2
+
+
+@pytest.mark.parametrize(
+    "http_status,body",
+    [
+        (500, {"status": "Success", "data": {"totalCount": 0}}),
+        (200, {"status": "Error", "data": {"totalCount": 0}}),
+        (200, {"status": "Success", "data": {}}),
+        (200, {"status": "Success"}),
+        (200, []),
+    ],
+)
+def test_job_search_total_rejects_anything_but_a_clean_answer(http_status, body):
+    """Only an explicit successful count may be read as "no openings"."""
+    with pytest.raises(RuntimeError):
+        _job_search_total(http_status, body)

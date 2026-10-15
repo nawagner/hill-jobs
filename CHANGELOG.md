@@ -2,10 +2,11 @@
 
 ## 2026-10-15
 
-- Stop the daily ingest from failing when a small House office has no openings
-  - The Clerk's only posting was taken down on 2026-10-15, so its career site came back empty and the whole run was marked crashed
-  - The Clerk, CAO and Sergeant at Arms sites are trusted when empty: not a failure, and jobs they take down now get closed (before, they stayed listed forever)
-  - Green & Gold and Capitol Police always have postings, so a broken browser scraper still fails the run
+- Tell "no openings" apart from a failed scrape on the CSOD career sites (House CAO, Clerk, Sergeant at Arms, Green & Gold, Capitol Police)
+  - The Clerk took down its only posting on 2026-10-15; its empty listing looked like a scrape failure, so the daily ingest was marked crashed
+  - The adapter now reads the site's own job-search API: only an explicit "Success, 0 jobs" answer counts as no openings, and the run succeeds
+  - Timeouts, browser crashes, error responses and pages that don't render their jobs now raise errors instead of quietly returning nothing
+  - Jobs a site takes down now get closed (before, an empty listing left them listed forever)
 
 ## 2026-10-14
 

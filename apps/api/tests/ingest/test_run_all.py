@@ -82,19 +82,22 @@ def test_empty_fetch_does_not_close_existing_jobs(db_session):
     assert statuses.count("empty") == 3
 
 
-def test_empty_fetch_from_no_openings_source_closes_taken_down_jobs(db_session):
-    """A small office's career site with no openings isn't a failure, and the job
-    it took down gets closed like any other missing job."""
+class _ConfirmedEmptyAdapter(_EmptyAdapter):
+    """Like CSOD: returns [] only when the site itself reports no openings."""
+
+    confirms_empty = True
+
+
+def test_confirmed_empty_fetch_closes_taken_down_jobs(db_session):
+    """A career site that confirms it has no openings isn't a failure, and the
+    job it took down gets closed like any other missing job."""
     client = httpx.Client()
     for _ in range(2):
         run_all_sources(db_session, {"good-source": _SuccessAdapter()}, client)
 
     # Closed on the third empty run, the same grace period as any missing job.
     for _ in range(3):
-        results = run_all_sources(
-            db_session, {"good-source": _EmptyAdapter()}, client,
-            no_openings_ok=frozenset({"good-source"}),
-        )
+        results = run_all_sources(db_session, {"good-source": _ConfirmedEmptyAdapter()}, client)
     client.close()
 
     assert results["good-source"].status == "success"

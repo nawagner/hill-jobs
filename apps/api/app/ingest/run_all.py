@@ -28,15 +28,7 @@ def run_all_sources(
     session: Session,
     registry: dict[str, SourceAdapter],
     http_client: httpx.Client,
-    no_openings_ok: frozenset[str] = frozenset(),
 ) -> dict[str, SyncRunResult]:
-    """Fetch, upsert and close missing jobs for every source.
-
-    An empty fetch is normally recorded as "empty" and changes nothing, since it
-    usually means a scrape failed. Sources in `no_openings_ok` are trusted to
-    really have no openings when empty: the run counts as a success, so jobs
-    they've taken down get closed.
-    """
     results: dict[str, SyncRunResult] = {}
 
     for name, adapter in registry.items():
@@ -52,10 +44,13 @@ def run_all_sources(
         try:
             source_jobs = adapter.fetch_jobs(http_client)
 
-            # Some adapters (e.g. CSOD) swallow scrape failures and return [].
-            # Don't treat that as a successful sync, or mark_missing_jobs would
-            # close every open job for the source after a few bad days.
-            if not source_jobs and name not in no_openings_ok:
+            # For most adapters an empty fetch can't be told apart from a quiet
+            # scrape failure. Don't treat it as a successful sync, or
+            # mark_missing_jobs would close every open job for the source after
+            # a few bad days. Adapters with `confirms_empty` (CSOD) only return
+            # [] when the site itself reports 0 openings, so their removed jobs
+            # still get closed.
+            if not source_jobs and not getattr(adapter, "confirms_empty", False):
                 sync_run.status = "empty"
                 sync_run.finished_at = datetime.now(timezone.utc)
                 session.commit()
