@@ -40,13 +40,19 @@ logger = logging.getLogger(__name__)
 
 # Sources that may legitimately return 0 jobs (no openings, or no credentials).
 ALLOW_EMPTY = {
-    "csod-house-saa",
     "aoc-usajobs",
     "gao-usajobs",
     "gpo-usajobs",
     "cbo-bizmerlin",
     "house-hvaps",
 }
+
+
+# Single-office House career sites often have no openings at all, so trust an
+# empty listing from them: it isn't a failure, and jobs they've taken down get
+# closed. A broken CSOD scraper still fails the run, because Green & Gold and
+# Capitol Police always have postings.
+NO_OPENINGS_OK = frozenset({"csod-house-cao", "csod-house-clerk", "csod-house-saa"})
 
 
 def build_registry(settings: Settings):
@@ -91,7 +97,7 @@ def main():
 
     try:
         with httpx.Client(timeout=60.0) as client:
-            results = run_all_sources(session, registry, client)
+            results = run_all_sources(session, registry, client, no_openings_ok=NO_OPENINGS_OK)
     finally:
         session.close()
         engine.dispose()

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-15
+
+- Stop the daily ingest from failing when a small House office has no openings
+  - The Clerk's only posting was taken down on 2026-10-15, so its career site came back empty and the whole run was marked crashed
+  - The Clerk, CAO and Sergeant at Arms sites are trusted when empty: not a failure, and jobs they take down now get closed (before, they stayed listed forever)
+  - Green & Gold and Capitol Police always have postings, so a broken browser scraper still fails the run
+
 ## 2026-10-14
 
 - Add Capitol motion graphics to the site
