@@ -44,10 +44,12 @@ def run_all_sources(
         try:
             source_jobs = adapter.fetch_jobs(http_client)
 
-            # Some adapters (e.g. CSOD) swallow scrape failures and return [].
-            # Don't treat that as a successful sync, or mark_missing_jobs would
-            # close every open job for the source after a few bad days.
-            if not source_jobs:
+            # An adapter's [] may hide a swallowed failure. Don't treat that as a
+            # successful sync, or mark_missing_jobs would close every open job
+            # for the source after a few bad days. Adapters whose [] means the
+            # source confirmed zero openings (they raise on failure) set
+            # empty_is_authoritative, and sync normally so stale jobs close.
+            if not source_jobs and not getattr(adapter, "empty_is_authoritative", False):
                 sync_run.status = "empty"
                 sync_run.finished_at = datetime.now(timezone.utc)
                 session.commit()

@@ -24,6 +24,10 @@ _EXTRACT_JOBS_JS = (
     "})))"
 )
 
+# The career-site SPA POSTs to this API to list jobs; its response's
+# data.totalCount says how many openings the site has.
+_JOB_SEARCH_PATH = "rec-job-search/external/jobs"
+
 # JS snippet to extract detail fields from a CSOD requisition detail page.
 _EXTRACT_DETAIL_JS = (
     "JSON.stringify({"
@@ -90,76 +94,158 @@ USCP_CONFIG = CsodConfig(
 )
 
 
+class CsodScrapeError(Exception):
+    """The listing page didn't confirm how many jobs the site has, or its job links didn't load."""
+
+
 class CsodAdapter:
+    # [] means the site's job search confirmed zero openings; failures raise.
+    empty_is_authoritative = True
+
     def __init__(self, config: CsodConfig):
         self.config = config
         self.source_system = config.source_system
 
     def fetch_jobs(self, client: httpx.Client) -> list[SourceJob]:
-        """Fetch jobs using Playwright to render the JS-driven career site."""
+        """Fetch jobs using Playwright to render the JS-driven career site.
+
+        Returns [] only when the site's job search reports zero openings.
+        Raises CsodScrapeError or a Playwright error when the listing can't be read.
+        """
         listing_url = f"{self.config.base_url}{self.config.listing_path}"
-        try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                try:
-                    jobs = self._scrape_listing(page, listing_url)
-                    if not jobs:
-                        logger.warning("CSOD %s: no jobs found", self.config.source_system)
-                        return []
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            try:
+                jobs = self._scrape_listing(page, listing_url)
+                if not jobs:
+                    logger.info("CSOD %s: no current openings", self.config.source_system)
+                    return []
 
-                    logger.info("CSOD %s: found %d jobs via Playwright", self.config.source_system, len(jobs))
+                logger.info("CSOD %s: found %d jobs via Playwright", self.config.source_system, len(jobs))
 
-                    enriched: list[SourceJob] = []
-                    for job in jobs:
-                        detail = _fetch_detail(page, job.source_url, self.config)
-                        if detail:
-                            enriched.append(_apply_detail(job, detail))
-                        else:
-                            enriched.append(job)
-                    return enriched
-                finally:
-                    browser.close()
-        except Exception:
-            logger.exception("CSOD %s: Playwright scrape failed", self.config.source_system)
-            return []
+                enriched: list[SourceJob] = []
+                for job in jobs:
+                    detail = _fetch_detail(page, job.source_url, self.config)
+                    if detail:
+                        enriched.append(_apply_detail(job, detail))
+                    else:
+                        enriched.append(job)
+                return enriched
+            finally:
+                browser.close()
 
     def _scrape_listing(self, page, listing_url: str) -> list[SourceJob]:
-        page.goto(listing_url, wait_until="domcontentloaded")
-        try:
-            page.wait_for_selector("a[href*=requisition]", timeout=15000)
-        except PlaywrightTimeout:
-            logger.warning("CSOD %s: timed out waiting for job links", self.config.source_system)
-            _dump_debug_artifacts(page, self.config.source_system, "listing-timeout")
-            return []
+        return _jobs_from_listing(self.config, *_load_listing(page, listing_url))
 
-        raw = page.evaluate(_EXTRACT_JOBS_JS)
-        items = json.loads(raw) if isinstance(raw, str) else raw
 
-        jobs: list[SourceJob] = []
-        for item in items:
-            title = item.get("title", "").strip()
-            if not title:
-                continue
-            href = item.get("href", "")
-            if href and not href.startswith("http"):
-                href = self.config.base_url + href
-            req_id = item.get("reqId", "")
+def _total_count(search_body) -> int | None:
+    """data.totalCount from a job-search response body, or None if missing or invalid."""
+    data = search_body.get("data") if isinstance(search_body, dict) else None
+    total = data.get("totalCount") if isinstance(data, dict) else None
+    if isinstance(total, bool) or not isinstance(total, int) or total < 0:
+        return None
+    return total
 
-            jobs.append(
-                SourceJob(
-                    source_system=self.config.source_system,
-                    source_organization=self.config.source_organization,
-                    source_job_id=req_id or None,
-                    source_url=href or self.config.base_url,
-                    title=title,
-                    description_html="",
-                    description_text="",
-                    location_text=None,
-                    raw_payload=item,
-                )
+
+def _jobs_from_listing(
+    config: CsodConfig, search_body: dict | None, items: list[dict]
+) -> list[SourceJob]:
+    """Build jobs from the listing's links, checked against the job-search count.
+
+    Returns [] only when the job search reports zero openings, because callers
+    trust that [] and close the source's stale jobs. Anything else that yields
+    no jobs raises CsodScrapeError.
+    """
+    total = _total_count(search_body)
+    if total is None:
+        raise CsodScrapeError(
+            f"CSOD {config.source_system}: no valid totalCount in the job-search response"
+        )
+    if total == 0:
+        return []
+
+    jobs: list[SourceJob] = []
+    for item in items:
+        title = item.get("title", "").strip()
+        if not title:
+            continue
+        href = item.get("href", "")
+        if href and not href.startswith("http"):
+            href = config.base_url + href
+        req_id = item.get("reqId", "")
+
+        jobs.append(
+            SourceJob(
+                source_system=config.source_system,
+                source_organization=config.source_organization,
+                source_job_id=req_id or None,
+                source_url=href or config.base_url,
+                title=title,
+                description_html="",
+                description_text="",
+                location_text=None,
+                raw_payload=item,
             )
-        return jobs
+        )
+
+    if not jobs:
+        raise CsodScrapeError(
+            f"CSOD {config.source_system}: job search reports {total} openings "
+            "but no job links were found"
+        )
+    return jobs
+
+
+def _is_job_search_response(response) -> bool:
+    return response.request.method == "POST" and _JOB_SEARCH_PATH in response.url
+
+
+def _load_listing(page, listing_url: str) -> tuple[dict | None, list[dict]]:
+    """Open a career-site listing; return (job-search response body, job links).
+
+    The body is the parsed JSON the SPA gets from its job-search API, or None if
+    that response never came, wasn't a 200 or wasn't JSON. Job links are only
+    waited for when the body reports openings. Navigation errors propagate.
+    """
+    label = re.sub(r"[^A-Za-z0-9]+", "-", listing_url.split("://", 1)[-1]).strip("-")
+    body = None
+    navigated = False
+    try:
+        with page.expect_response(_is_job_search_response, timeout=30000) as response_info:
+            page.goto(listing_url, wait_until="domcontentloaded")
+            navigated = True
+        response = response_info.value
+    except PlaywrightTimeout:
+        if not navigated:
+            raise
+        logger.warning("CSOD %s: timed out waiting for the job-search response", listing_url)
+    else:
+        if response.status != 200:
+            logger.warning("CSOD %s: job-search response status %d", listing_url, response.status)
+        else:
+            try:
+                body = response.json()
+            except ValueError:
+                logger.warning("CSOD %s: job-search response is not JSON", listing_url)
+
+    total = _total_count(body)
+    if total is None:
+        _dump_debug_artifacts(page, label, "no-job-count")
+        return body, []
+    if total == 0:
+        return body, []
+
+    try:
+        page.wait_for_selector("a[href*=requisition]", timeout=15000)
+    except PlaywrightTimeout:
+        logger.warning("CSOD %s: timed out waiting for job links", listing_url)
+        _dump_debug_artifacts(page, label, "listing-timeout")
+        return body, []
+
+    raw = page.evaluate(_EXTRACT_JOBS_JS)
+    items = json.loads(raw) if isinstance(raw, str) else raw
+    return body, items
 
 
 def _dump_debug_artifacts(page, source_system: str, tag: str) -> None:
