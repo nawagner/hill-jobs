@@ -1,9 +1,12 @@
 """Weekly newsletter sender.
 
-Sends digest emails to confirmed subscribers with jobs matching their filters
-posted in the last 7 days. Run weekly by the `newsletter-cron` Railway service.
+Sends digest emails to confirmed subscribers listing the jobs matching their
+filters that Hill Jobs first saw in the last 7 days. Subscribers who picked a
+"Date posted" range get every open job in that range instead, the same list the
+site shows for their filters. Each email links to the site's search with the
+subscriber's filters. Run weekly by the `newsletter-cron` Railway service.
 Pass --dry-run to log what would be sent without sending or recording anything.
-Pass --test-to EMAIL to send one sample digest (all jobs from the last 7 days)
+Pass --test-to EMAIL to send one sample digest (all jobs new in the last 7 days)
 to that address only; combine with --dry-run to also preview the real send.
 """
 
@@ -14,6 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlencode
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
@@ -22,9 +26,10 @@ from sqlalchemy.orm import Session, sessionmaker
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import Settings
+from app.data.member_committees import COMMITTEES
 from app.db import get_engine
 from app.lib.email import send_email
-from app.lib.email_templates import build_digest_html
+from app.lib.email_templates import NEW_JOBS_INTRO, build_digest_html
 from app.models.subscribers import Subscriber
 from app.search.query_jobs import query_jobs
 
@@ -33,6 +38,17 @@ logger = logging.getLogger(__name__)
 
 # Don't send twice in one week, even if the cron is re-run.
 MIN_DAYS_BETWEEN_SENDS = 6
+# A job is new if Hill Jobs first saw it this recently. Not its posting date:
+# HVAPS and CSOD listings have none, and some sources are ingested days late.
+NEW_JOB_WINDOW_DAYS = 7
+DIGEST_PAGE_SIZE = 100
+
+# The site's "Date posted" choices, as they read in a subject line.
+FRESHNESS_PHRASES = {
+    "7": "posted in the last 7 days",
+    "30": "posted in the last 30 days",
+    "older_30": "posted more than 30 days ago",
+}
 
 
 @dataclass
@@ -68,30 +84,35 @@ def send_digests(
             continue
 
         filters = sub.filters or {}
-        try:
-            salary_min_val = int(filters["salary_min"]) if filters.get("salary_min") else None
-        except (ValueError, TypeError):
-            salary_min_val = None
+        search = _search_kwargs(filters)
+        freshness = _freshness(filters)
 
-        jobs, total = query_jobs(
-            session,
-            q=filters.get("q") or None,
-            role_kind=filters.get("role_kind") or None,
-            organization=filters.get("organization") or None,
-            party=filters.get("party") or None,
-            state=filters.get("state") or None,
-            committee=filters.get("committee") or None,
-            salary_min=salary_min_val,
-            posted_since_days=7,
-            page=1,
-            page_size=100,
-        )
+        if freshness:
+            # A "Date posted" range already limits the jobs, just as on the site.
+            jobs, total = query_jobs(session, **search, page=1, page_size=DIGEST_PAGE_SIZE)
+            open_total = total
+        else:
+            jobs, total = query_jobs(
+                session,
+                **search,
+                first_seen_since=now - timedelta(days=NEW_JOB_WINDOW_DAYS),
+                page=1,
+                page_size=DIGEST_PAGE_SIZE,
+            )
 
         if not jobs:
             result.skipped += 1
             continue
 
-        subject = f"Hill Jobs Weekly: {total} new position{'s' if total != 1 else ''} matching your filters"
+        plural = "s" if total != 1 else ""
+        if freshness:
+            phrase = FRESHNESS_PHRASES[freshness]
+            subject = f"Hill Jobs Weekly: {total} position{plural} {phrase} matching your filters"
+            intro = f"Here are the open positions {phrase} that match your filters."
+        else:
+            _, open_total = query_jobs(session, **search, page=1, page_size=1)
+            subject = f"Hill Jobs Weekly: {total} new position{plural} matching your filters"
+            intro = NEW_JOBS_INTRO
 
         if dry_run:
             logger.info("[dry run] Would send to %s (%d jobs)", _mask(sub.email), total)
@@ -103,7 +124,15 @@ def send_digests(
                 api_key=api_key,
                 to=sub.email,
                 subject=subject,
-                html=build_digest_html(jobs, sub.unsubscribe_token, site_base_url),
+                html=build_digest_html(
+                    jobs,
+                    sub.unsubscribe_token,
+                    site_base_url,
+                    intro=intro,
+                    search_url=_site_search_url(site_base_url, filters),
+                    open_total=open_total,
+                    filtered=bool(_site_search_params(filters)),
+                ),
             )
             sub.last_sent_at = now
             session.commit()
@@ -123,24 +152,84 @@ def send_test_digest(
     to: str,
     api_key: str,
     site_base_url: str,
+    now: datetime | None = None,
     send: Callable[..., None] = send_email,
 ) -> int:
-    """Send one sample digest of every job from the last 7 days to `to`.
+    """Send one sample digest of every job new in the last 7 days to `to`.
 
     Touches no subscriber rows, so it never affects the real weekly send.
     """
-    jobs, total = query_jobs(session, posted_since_days=7, page=1, page_size=100)
+    now = now or datetime.now(timezone.utc)
+    jobs, total = query_jobs(
+        session,
+        first_seen_since=now - timedelta(days=NEW_JOB_WINDOW_DAYS),
+        page=1,
+        page_size=DIGEST_PAGE_SIZE,
+    )
     if not jobs:
-        logger.warning("No jobs from the last 7 days; test digest not sent")
+        logger.warning("No new jobs in the last 7 days; test digest not sent")
         return 0
+    _, open_total = query_jobs(session, page=1, page_size=1)
     send(
         api_key=api_key,
         to=to,
         subject=f"[TEST] Hill Jobs Weekly: {total} new position{'s' if total != 1 else ''}",
-        html=build_digest_html(jobs, "test-preview", site_base_url),
+        html=build_digest_html(jobs, "test-preview", site_base_url, open_total=open_total),
     )
     logger.info("Sent test digest to %s (%d jobs)", _mask(to), total)
     return total
+
+
+def _freshness(filters: dict) -> str | None:
+    value = filters.get("freshness")
+    return value if value in FRESHNESS_PHRASES else None
+
+
+def _search_kwargs(filters: dict) -> dict:
+    """A subscriber's filters as query_jobs arguments, the same search the site runs."""
+    try:
+        salary_min = int(filters["salary_min"]) if filters.get("salary_min") else None
+    except (ValueError, TypeError):
+        salary_min = None
+    freshness = _freshness(filters)
+    return {
+        "q": filters.get("q") or None,
+        "role_kind": filters.get("role_kind") or None,
+        "organization": filters.get("organization") or None,
+        "party": filters.get("party") or None,
+        "state": filters.get("state") or None,
+        "committee": filters.get("committee") or None,
+        "salary_min": salary_min,
+        "posted_since_days": int(freshness) if freshness and freshness.isdigit() else None,
+        "posted_before_days": 30 if freshness == "older_30" else None,
+    }
+
+
+def _site_search_params(filters: dict) -> dict[str, str]:
+    """A subscriber's filters as the site's search URL parameters."""
+    params = {
+        key: str(filters[key])
+        for key in ("q", "role_kind", "organization", "party", "state")
+        if filters.get(key)
+    }
+    committee = filters.get("committee")
+    if committee:
+        # Subscriptions store a subcommittee in place of its committee; the site
+        # wants both so its committee menus show the selection.
+        parent = COMMITTEES.get(committee, {}).get("parent")
+        params["committee"] = parent or committee
+        if parent:
+            params["subcommittee"] = committee
+    if _freshness(filters):
+        params["freshness"] = filters["freshness"]
+    if filters.get("salary_min"):
+        params["salary"] = str(filters["salary_min"])
+    return params
+
+
+def _site_search_url(site_base_url: str, filters: dict) -> str:
+    params = _site_search_params(filters)
+    return f"{site_base_url}/?{urlencode(params)}" if params else site_base_url
 
 
 def _mask(email: str) -> str:

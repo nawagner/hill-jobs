@@ -14,7 +14,17 @@ _spec.loader.exec_module(send_newsletter)
 NOW = datetime.now(timezone.utc)
 
 
-def _job(slug: str, role_kind: str, posted_days_ago: int, status: str = "open") -> Job:
+def _job(
+    slug: str,
+    role_kind: str,
+    posted_days_ago: int | None,
+    status: str = "open",
+    first_seen_days_ago: int | None = None,
+) -> Job:
+    """A job posted `posted_days_ago` (None: no posting date, like HVAPS and CSOD)
+    and first seen by Hill Jobs `first_seen_days_ago`, by default when it was posted."""
+    if first_seen_days_ago is None:
+        first_seen_days_ago = posted_days_ago
     return Job(
         slug=slug,
         title=f"Job {slug}",
@@ -27,7 +37,8 @@ def _job(slug: str, role_kind: str, posted_days_ago: int, status: str = "open") 
         description_html="<p>x</p>",
         description_text="x",
         search_document=f"Job {slug}",
-        posted_at=NOW - timedelta(days=posted_days_ago),
+        posted_at=NOW - timedelta(days=posted_days_ago) if posted_days_ago is not None else None,
+        first_seen_at=NOW - timedelta(days=first_seen_days_ago),
     )
 
 
@@ -79,7 +90,96 @@ def test_sends_matching_jobs_from_the_last_week(db_session):
     assert email["subject"] == "Hill Jobs Weekly: 1 new position matching your filters"
     assert "/jobs/new-comms" in email["html"]
     assert "old-comms" not in email["html"] and "closed-comms" not in email["html"]
+    assert "added to Hill Jobs in the past week" in email["html"]
+    # The button links to every open match on the site, not just this week's.
+    assert 'href="https://hill-jobs.org/?role_kind=communications"' in email["html"]
+    assert "See all 2 open jobs matching your filters" in email["html"]
     assert db_session.query(Subscriber).one().last_sent_at is not None
+
+
+def test_new_means_first_seen_this_week_not_posted_this_week(db_session):
+    db_session.add_all([
+        # HVAPS and CSOD listings have no posting date.
+        _job("undated-new", "communications", None, first_seen_days_ago=2),
+        _job("undated-old", "communications", None, first_seen_days_ago=10),
+        # Posted weeks ago but only picked up by an ingest this week.
+        _job("late-ingest", "communications", 20, first_seen_days_ago=1),
+        _job("old", "communications", 20),
+        _subscriber("reader@example.com"),
+    ])
+    db_session.commit()
+    outbox = _Outbox()
+
+    _run(db_session, outbox)
+
+    [email] = outbox.sent
+    assert email["subject"] == "Hill Jobs Weekly: 2 new positions matching your filters"
+    assert "/jobs/undated-new" in email["html"] and "/jobs/late-ingest" in email["html"]
+    assert "undated-old" not in email["html"] and "/jobs/old\"" not in email["html"]
+    # No filters: the button links to the whole site and doesn't mention filters.
+    assert "See all 4 open jobs" in email["html"]
+    assert "matching your filters" not in email["html"]
+    assert 'href="https://hill-jobs.org"' in email["html"]
+
+
+def test_date_posted_choice_lists_what_the_site_shows(db_session):
+    db_session.add_all([
+        _job("this-week", "communications", 2),
+        _job("this-month", "communications", 20),
+        _job("undated-this-month", "communications", None, first_seen_days_ago=10),
+        _job("last-quarter", "communications", 60),
+        _subscriber("reader@example.com", {"role_kind": "communications", "freshness": "30"}),
+    ])
+    db_session.commit()
+    outbox = _Outbox()
+
+    _run(db_session, outbox)
+
+    [email] = outbox.sent
+    assert email["subject"] == (
+        "Hill Jobs Weekly: 3 positions posted in the last 30 days matching your filters"
+    )
+    assert "Here are the open positions posted in the last 30 days that match your filters." in email["html"]
+    for slug in ("this-week", "this-month", "undated-this-month"):
+        assert f"/jobs/{slug}" in email["html"]
+    assert "last-quarter" not in email["html"]
+    assert 'href="https://hill-jobs.org/?role_kind=communications&amp;freshness=30"' in email["html"]
+    assert "See all 3 open jobs matching your filters" in email["html"]
+
+
+def test_older_than_30_days_choice(db_session):
+    db_session.add_all([
+        _job("this-week", "communications", 2),
+        _job("last-quarter", "communications", 60),
+        _subscriber("reader@example.com", {"freshness": "older_30"}),
+    ])
+    db_session.commit()
+    outbox = _Outbox()
+
+    _run(db_session, outbox)
+
+    [email] = outbox.sent
+    assert email["subject"] == (
+        "Hill Jobs Weekly: 1 position posted more than 30 days ago matching your filters"
+    )
+    assert "/jobs/last-quarter" in email["html"] and "this-week" not in email["html"]
+
+
+def test_site_search_url_matches_the_site_parameters():
+    url = send_newsletter._site_search_url
+
+    assert url("https://hill-jobs.org", {}) == "https://hill-jobs.org"
+    assert url("https://hill-jobs.org", {"party": "D", "committee": "HSSY"}) == (
+        "https://hill-jobs.org/?party=D&committee=HSSY"
+    )
+    # A saved subcommittee needs its parent committee for the site's menus.
+    assert url(
+        "https://hill-jobs.org",
+        {"organization": "Rep. Sarah McBride", "committee": "HSSY15", "salary_min": "75000", "freshness": "7"},
+    ) == (
+        "https://hill-jobs.org/?organization=Rep.+Sarah+McBride&committee=HSSY"
+        "&subcommittee=HSSY15&freshness=7&salary=75000"
+    )
 
 
 def test_skips_unconfirmed_recently_sent_and_no_matches(db_session):
@@ -145,4 +245,5 @@ def test_test_digest_goes_only_to_the_test_address(db_session):
     assert email["to"] == "tester@example.com"
     assert email["subject"] == "[TEST] Hill Jobs Weekly: 2 new positions"
     assert "/jobs/new-comms" in email["html"] and "/jobs/new-tech" in email["html"]
+    assert "See all 3 open jobs" in email["html"]
     assert db_session.query(Subscriber).one().last_sent_at is None

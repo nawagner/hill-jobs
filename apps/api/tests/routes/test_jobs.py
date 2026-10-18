@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.models.jobs import Job
 
@@ -356,3 +356,38 @@ def test_list_committees_endpoint(test_client):
         assert "name" in c
         assert "chamber" in c
         assert "subcommittees" in c
+
+
+def _dated_job(slug: str, posted_days_ago: int | None, first_seen_days_ago: int) -> Job:
+    now = datetime.now(timezone.utc)
+    return Job(
+        slug=slug,
+        title=f"Job {slug}",
+        source_organization="Senate Press",
+        source_system="house-hvaps" if posted_days_ago is None else "senate-webscribble",
+        source_job_id=slug,
+        source_url=f"https://example.com/{slug}",
+        status="open",
+        role_kind="operations",
+        description_html="<p>x</p>",
+        description_text="x",
+        search_document=f"Job {slug}",
+        posted_at=now - timedelta(days=posted_days_ago) if posted_days_ago is not None else None,
+        first_seen_at=now - timedelta(days=first_seen_days_ago),
+    )
+
+
+def test_date_filters_date_undated_jobs_by_when_first_seen(test_client, db_session):
+    db_session.add_all([
+        _dated_job("posted-recently", 2, 2),
+        _dated_job("posted-long-ago", 60, 60),
+        _dated_job("undated-recent", None, 3),
+        _dated_job("undated-old", None, 45),
+    ])
+    db_session.commit()
+
+    recent = test_client.get("/api/jobs?posted_since_days=7").json()
+    older = test_client.get("/api/jobs?posted_before_days=30").json()
+
+    assert sorted(j["slug"] for j in recent["items"]) == ["posted-recently", "undated-recent"]
+    assert sorted(j["slug"] for j in older["items"]) == ["posted-long-ago", "undated-old"]

@@ -81,6 +81,7 @@ export function Preferences() {
         setState(f.state || "");
         setCommittee(committee);
         setSubcommittee(subcommittee);
+        setFreshness(f.freshness || "");
         setSalary(f.salary_min || "");
         setOrganizations(orgs);
         setRoleKinds(kinds);
@@ -108,6 +109,7 @@ export function Preferences() {
     if (state) filters.state = state;
     const effectiveCommittee = subcommittee || committee;
     if (effectiveCommittee) filters.committee = effectiveCommittee;
+    if (freshness) filters.freshness = freshness;
     if (salary) filters.salary_min = salary;
 
     try {
@@ -164,6 +166,9 @@ export function Preferences() {
         <div>
           <p className="block text-sm font-body font-medium text-slate-700 mb-2">
             Filter preferences
+          </p>
+          <p className="text-xs font-body text-slate-400 mb-3">
+            Leave filters empty to get every new job. Choose a "Date posted" range to get every open job in that range each week, not just new ones.
           </p>
           <Filters
             roleKinds={roleKinds}

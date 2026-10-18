@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { Preferences } from "./preferences";
 
@@ -6,14 +6,18 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function mockPreferencesFetch() {
-  vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+function mockPreferencesFetch(filters: Record<string, string> = { committee: "finance-tax" }) {
+  vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+
+    if (url.includes("/api/subscribe/preferences/token-123") && init?.method === "PUT") {
+      return Promise.resolve(new Response(JSON.stringify({ message: "Preferences updated." })));
+    }
 
     if (url.includes("/api/subscribe/preferences/token-123")) {
       return Promise.resolve(new Response(JSON.stringify({
         email: "reader@example.com",
-        filters: { committee: "finance-tax" },
+        filters,
       })));
     }
 
@@ -70,5 +74,31 @@ describe("Preferences", () => {
       expect(screen.getByLabelText("Subcommittee")).toHaveValue("finance-tax");
       expect(screen.getByLabelText("Subcommittee")).not.toBeDisabled();
     });
+  });
+
+  it("restores and saves the date posted choice", async () => {
+    mockPreferencesFetch({ party: "D", freshness: "older_30" });
+
+    render(
+      <MemoryRouter initialEntries={["/preferences/token-123"]}>
+        <Routes>
+          <Route path="/preferences/:token" element={<Preferences />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Posted within")).toHaveValue("older_30");
+    });
+
+    fireEvent.change(screen.getByLabelText("Posted within"), { target: { value: "7" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Preferences" }));
+
+    await screen.findByText("Preferences updated.");
+
+    const [, init] = vi.mocked(fetch).mock.calls.find(
+      ([, init]) => init?.method === "PUT",
+    )!;
+    expect(JSON.parse(String(init?.body)).filters).toEqual({ party: "D", freshness: "7" });
   });
 });

@@ -52,6 +52,7 @@ export function Subscribe() {
     if (state) filters.state = state;
     const effectiveCommittee = subcommittee || committee;
     if (effectiveCommittee) filters.committee = effectiveCommittee;
+    if (freshness) filters.freshness = freshness;
     if (salary) filters.salary_min = salary;
 
     try {
@@ -121,7 +122,7 @@ export function Subscribe() {
             Filter preferences
           </p>
           <p className="text-xs font-body text-slate-400 mb-3">
-            Leave filters empty to receive all new job postings.
+            Leave filters empty to get every new job. Choose a "Date posted" range to get every open job in that range each week, not just new ones.
           </p>
           <Filters
             roleKinds={roleKinds}

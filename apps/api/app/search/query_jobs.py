@@ -15,6 +15,7 @@ def query_jobs(
     status: str | None = None,
     posted_since_days: int | None = None,
     posted_before_days: int | None = None,
+    first_seen_since: datetime | None = None,
     salary_min: int | None = None,
     party: str | None = None,
     state: str | None = None,
@@ -37,13 +38,20 @@ def query_jobs(
     if organization:
         stmt = stmt.where(Job.source_organization == organization)
 
+    # HVAPS and CSOD listings have no posting date; date them by when we first
+    # saw them, or every date filter (and the newsletter) would hide them.
+    posted_on = func.coalesce(Job.posted_at, Job.first_seen_at)
+
     if posted_since_days is not None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=posted_since_days)
-        stmt = stmt.where(Job.posted_at >= cutoff)
+        stmt = stmt.where(posted_on >= cutoff)
 
     if posted_before_days is not None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=posted_before_days)
-        stmt = stmt.where(Job.posted_at < cutoff)
+        stmt = stmt.where(posted_on < cutoff)
+
+    if first_seen_since is not None:
+        stmt = stmt.where(Job.first_seen_at >= first_seen_since)
 
     if salary_min is not None:
         if salary_min == 0:

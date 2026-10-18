@@ -1,6 +1,20 @@
 from pydantic import BaseModel, EmailStr, field_validator
 
-ALLOWED_FILTER_KEYS = {"q", "role_kind", "organization", "party", "state", "committee", "salary_min"}
+ALLOWED_FILTER_KEYS = {
+    "q", "role_kind", "organization", "party", "state", "committee", "salary_min", "freshness",
+}
+
+# The site's "Date posted" options: posted in the last N days, or older than 30 days.
+FRESHNESS_VALUES = {"7", "30", "older_30"}
+
+
+def _clean_filters(v: dict) -> dict:
+    unknown = set(v.keys()) - ALLOWED_FILTER_KEYS
+    if unknown:
+        raise ValueError(f"Unknown filter keys: {unknown}")
+    if v.get("freshness") and v["freshness"] not in FRESHNESS_VALUES:
+        raise ValueError(f"freshness must be one of {sorted(FRESHNESS_VALUES)}")
+    return {k: v for k, v in v.items() if v}
 
 
 class SubscribeRequest(BaseModel):
@@ -10,10 +24,7 @@ class SubscribeRequest(BaseModel):
     @field_validator("filters")
     @classmethod
     def validate_filter_keys(cls, v: dict) -> dict:
-        unknown = set(v.keys()) - ALLOWED_FILTER_KEYS
-        if unknown:
-            raise ValueError(f"Unknown filter keys: {unknown}")
-        return {k: v for k, v in v.items() if v}
+        return _clean_filters(v)
 
 
 class SubscribeResponse(BaseModel):
@@ -31,7 +42,4 @@ class PreferencesUpdateRequest(BaseModel):
     @field_validator("filters")
     @classmethod
     def validate_filter_keys(cls, v: dict) -> dict:
-        unknown = set(v.keys()) - ALLOWED_FILTER_KEYS
-        if unknown:
-            raise ValueError(f"Unknown filter keys: {unknown}")
-        return {k: v for k, v in v.items() if v}
+        return _clean_filters(v)

@@ -57,4 +57,27 @@ describe("Subscribe", () => {
 
     expect(screen.queryByText("Check your email")).not.toBeInTheDocument();
   });
+
+  it("saves the date posted choice with the other filters", async () => {
+    mockSubscribeFetch();
+
+    render(
+      <MemoryRouter>
+        <Subscribe />
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(screen.getByLabelText("Email address"), {
+      target: { value: "reader@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Posted within"), { target: { value: "30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Subscribe to Weekly Digest" }));
+
+    await screen.findByText("Subscription filters updated.");
+
+    const [, init] = vi.mocked(fetch).mock.calls.find(
+      ([, init]) => init?.method === "POST",
+    )!;
+    expect(JSON.parse(String(init?.body)).filters).toEqual({ freshness: "30" });
+  });
 });

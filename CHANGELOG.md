@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-18
+
+- Fix the weekly newsletter leaving out listings with no posting date: all 26 HVAPS and 59 House and Capitol Police (CSOD) listings, 85 of 311 open jobs, never reached any subscriber
+  - A job is new when Hill Jobs first saw it in the past week, so listings ingested days after their posting date are included too
+  - The site's "Date posted" filter dates undated listings by when they were first seen instead of hiding them
+- Save the "Date posted" choice on the subscribe and preferences pages; it was shown but ignored
+  - Subscribers who pick a range get every open job in that range each week, the same list the site shows for their filters
+- Each digest links to the site's search with the subscriber's filters ("See all 8 open jobs matching your filters"), since the email only lists new jobs
+
 ## 2026-10-15
 
 - Redraw the hero's Capitol dome from an 1897 Library of Congress photo; the top looked like a candle
