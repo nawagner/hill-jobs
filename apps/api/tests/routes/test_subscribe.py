@@ -51,3 +51,12 @@ def test_unknown_date_posted_choice_is_rejected(test_client, db_session):
     )
 
     assert res.status_code == 422
+
+
+def test_malformed_date_posted_choice_is_a_validation_error(test_client, db_session):
+    res = test_client.post(
+        "/api/subscribe",
+        json={"email": "reader@example.com", "filters": {"freshness": ["7"]}},
+    )
+
+    assert res.status_code == 422

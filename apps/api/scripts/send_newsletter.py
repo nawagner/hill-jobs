@@ -1,10 +1,11 @@
 """Weekly newsletter sender.
 
 Sends digest emails to confirmed subscribers listing the jobs matching their
-filters that Hill Jobs first saw in the last 7 days. Subscribers who picked a
-"Date posted" range get every open job in that range instead, the same list the
-site shows for their filters. Each email links to the site's search with the
-subscriber's filters. Run weekly by the `newsletter-cron` Railway service.
+filters that Hill Jobs first saw, or that were posted, in the last 7 days.
+Subscribers who picked a "Date posted" range get every open job in that range
+instead, the same list the site shows for their filters. Each email links to
+the site's search with the subscriber's filters. Run weekly by the
+`newsletter-cron` Railway service.
 Pass --dry-run to log what would be sent without sending or recording anything.
 Pass --test-to EMAIL to send one sample digest (all jobs new in the last 7 days)
 to that address only; combine with --dry-run to also preview the real send.
@@ -38,8 +39,9 @@ logger = logging.getLogger(__name__)
 
 # Don't send twice in one week, even if the cron is re-run.
 MIN_DAYS_BETWEEN_SENDS = 6
-# A job is new if Hill Jobs first saw it this recently. Not its posting date:
-# HVAPS and CSOD listings have none, and some sources are ingested days late.
+# A job is new if Hill Jobs first saw it, or it was (re)posted, this recently.
+# Posting date alone misses HVAPS and CSOD listings, which have none, and
+# listings that are ingested days after their posting date.
 NEW_JOB_WINDOW_DAYS = 7
 DIGEST_PAGE_SIZE = 100
 
@@ -89,13 +91,20 @@ def send_digests(
 
         if freshness:
             # A "Date posted" range already limits the jobs, just as on the site.
-            jobs, total = query_jobs(session, **search, page=1, page_size=DIGEST_PAGE_SIZE)
+            jobs, total = query_jobs(
+                session,
+                **search,
+                order_undated_by_first_seen=True,
+                page=1,
+                page_size=DIGEST_PAGE_SIZE,
+            )
             open_total = total
         else:
             jobs, total = query_jobs(
                 session,
                 **search,
-                first_seen_since=now - timedelta(days=NEW_JOB_WINDOW_DAYS),
+                new_since=now - timedelta(days=NEW_JOB_WINDOW_DAYS),
+                order_undated_by_first_seen=True,
                 page=1,
                 page_size=DIGEST_PAGE_SIZE,
             )
@@ -162,7 +171,8 @@ def send_test_digest(
     now = now or datetime.now(timezone.utc)
     jobs, total = query_jobs(
         session,
-        first_seen_since=now - timedelta(days=NEW_JOB_WINDOW_DAYS),
+        new_since=now - timedelta(days=NEW_JOB_WINDOW_DAYS),
+        order_undated_by_first_seen=True,
         page=1,
         page_size=DIGEST_PAGE_SIZE,
     )

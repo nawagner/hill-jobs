@@ -122,6 +122,37 @@ def test_new_means_first_seen_this_week_not_posted_this_week(db_session):
     assert 'href="https://hill-jobs.org"' in email["html"]
 
 
+def test_reposted_job_counts_as_new(db_session):
+    # Ingestion refreshes posted_at when a source reposts a job it listed before.
+    db_session.add_all([
+        _job("reposted", "communications", 2, first_seen_days_ago=30),
+        _subscriber("reader@example.com"),
+    ])
+    db_session.commit()
+    outbox = _Outbox()
+
+    _run(db_session, outbox)
+
+    [email] = outbox.sent
+    assert "/jobs/reposted" in email["html"]
+
+
+def test_100_job_cap_does_not_drop_undated_jobs_first(db_session):
+    db_session.add_all([_job(f"dated-{i}", "communications", 2) for i in range(101)])
+    db_session.add_all([
+        _job("undated", "communications", None, first_seen_days_ago=1),
+        _subscriber("reader@example.com"),
+    ])
+    db_session.commit()
+    outbox = _Outbox()
+
+    _run(db_session, outbox)
+
+    [email] = outbox.sent
+    assert email["subject"] == "Hill Jobs Weekly: 102 new positions matching your filters"
+    assert "/jobs/undated" in email["html"]
+
+
 def test_date_posted_choice_lists_what_the_site_shows(db_session):
     db_session.add_all([
         _job("this-week", "communications", 2),

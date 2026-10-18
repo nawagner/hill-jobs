@@ -12,7 +12,8 @@ def _clean_filters(v: dict) -> dict:
     unknown = set(v.keys()) - ALLOWED_FILTER_KEYS
     if unknown:
         raise ValueError(f"Unknown filter keys: {unknown}")
-    if v.get("freshness") and v["freshness"] not in FRESHNESS_VALUES:
+    freshness = v.get("freshness")
+    if freshness and (not isinstance(freshness, str) or freshness not in FRESHNESS_VALUES):
         raise ValueError(f"freshness must be one of {sorted(FRESHNESS_VALUES)}")
     return {k: v for k, v in v.items() if v}
 
