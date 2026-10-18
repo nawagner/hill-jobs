@@ -159,12 +159,6 @@ def _jobs_from_listing(
         )
     if total == 0:
         return []
-    # A partial read would let mark_missing_jobs close the jobs it left out.
-    if len(items) < total:
-        raise CsodScrapeError(
-            f"CSOD {config.source_system}: job search reports {total} openings "
-            f"but only {len(items)} were read"
-        )
 
     jobs: list[SourceJob] = []
     for item in items:
@@ -190,10 +184,12 @@ def _jobs_from_listing(
             )
         )
 
-    if not jobs:
+    # A partial list (a page not read, or a job dropped for a blank title)
+    # would let mark_missing_jobs close the jobs it left out.
+    if len(jobs) < total:
         raise CsodScrapeError(
             f"CSOD {config.source_system}: job search reports {total} openings "
-            "but none had a title"
+            f"but only {len(jobs)} were read"
         )
     return jobs
 
@@ -203,7 +199,7 @@ def _collect_requisitions(first_body: dict, fetch_page) -> list[dict]:
 
     `first_body` is the page-1 response; `fetch_page(n)` returns the response
     body for page n, or None if it couldn't be read. Stops once the reported
-    totalCount is reached, when a page fails or comes back empty, or after
+    totalCount is reached, when a page fails or adds no new jobs, or after
     _MAX_PAGES pages. The caller checks the result against totalCount.
     """
     total = _total_count(first_body) or 0
@@ -227,11 +223,8 @@ def _collect_requisitions(first_body: dict, fetch_page) -> list[dict]:
     page_number = 1
     while len(requisitions) < total and page_number < _MAX_PAGES:
         page_number += 1
-        page_body = fetch_page(page_number)
-        data = page_body.get("data") if isinstance(page_body, dict) else None
-        if not isinstance(data, dict) or not data.get("requisitions"):
+        if not add(fetch_page(page_number)):
             break
-        add(page_body)
     return requisitions
 
 
