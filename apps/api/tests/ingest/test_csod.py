@@ -86,7 +86,7 @@ def _search_body(total_count) -> dict:
 
 
 def _item(title: str, href: str, req_id: str = "") -> dict:
-    """One link as _EXTRACT_JOBS_JS returns it."""
+    """One job item as _items_from_requisitions builds it."""
     return {"title": title, "href": href, "reqId": req_id}
 
 

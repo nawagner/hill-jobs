@@ -2,6 +2,9 @@
 
 ## 2026-10-18
 
+- Fix the House and Capitol Police (CSOD) scraper reading only the first page of a career site's jobs (25 per page)
+  - Green & Gold has 33 openings; the 8 on page 2 went unseen and would have been closed as missing, and new jobs landing on page 2 were never added
+  - Every page now comes from the site's own job-search requests, and a listing that reads fewer jobs than the site's count is an error instead of a partial list that closes the rest
 - Fix the daily ingest failing when the Clerk's or Sergeant at Arms' career site has no openings
   - The House and Capitol Police (CSOD) scraper now reads each site's own job count, so a site with no openings is a successful run with 0 jobs instead of a failure
   - A CSOD page that doesn't load, or doesn't show the jobs its count reports, is now reported as an error instead of silently returning no jobs
