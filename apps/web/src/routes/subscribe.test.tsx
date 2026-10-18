@@ -70,6 +70,7 @@ describe("Subscribe", () => {
     fireEvent.change(screen.getByLabelText("Email address"), {
       target: { value: "reader@example.com" },
     });
+    expect(screen.queryByRole("option", { name: "Older than 30 days" })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Posted within"), { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: "Subscribe to Weekly Digest" }));
 

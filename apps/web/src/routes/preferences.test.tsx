@@ -77,7 +77,7 @@ describe("Preferences", () => {
   });
 
   it("restores and saves the date posted choice", async () => {
-    mockPreferencesFetch({ party: "D", freshness: "older_30" });
+    mockPreferencesFetch({ party: "D", freshness: "30" });
 
     render(
       <MemoryRouter initialEntries={["/preferences/token-123"]}>
@@ -88,8 +88,10 @@ describe("Preferences", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Posted within")).toHaveValue("older_30");
+      expect(screen.getByLabelText("Posted within")).toHaveValue("30");
     });
+    // Alerts are about recent jobs, so the older-than-30-days option is left out.
+    expect(screen.queryByRole("option", { name: "Older than 30 days" })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Posted within"), { target: { value: "7" } });
     fireEvent.click(screen.getByRole("button", { name: "Save Preferences" }));

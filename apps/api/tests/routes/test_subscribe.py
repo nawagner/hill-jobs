@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+import pytest
+
 from app.models.subscribers import Subscriber
 
 
@@ -34,20 +36,22 @@ def test_confirmed_subscriber_resubscribing_saves_date_posted_choice(test_client
 
     res = test_client.post(
         "/api/subscribe",
-        json={"email": "reader@example.com", "filters": {"freshness": "older_30"}},
+        json={"email": "reader@example.com", "filters": {"freshness": "7"}},
     )
 
     assert res.json() == {"message": "Subscription filters updated."}
     db_session.expire_all()
-    assert db_session.query(Subscriber).one().filters == {"freshness": "older_30"}
+    assert db_session.query(Subscriber).one().filters == {"freshness": "7"}
 
 
-def test_unknown_date_posted_choice_is_rejected(test_client, db_session):
+@pytest.mark.parametrize("choice", ["14", "older_30"])
+def test_unknown_date_posted_choice_is_rejected(test_client, db_session, choice):
+    # "older_30" is a site search option, not offered for alerts.
     sub = _subscriber(db_session)
 
     res = test_client.put(
         f"/api/subscribe/preferences/{sub.unsubscribe_token}",
-        json={"filters": {"freshness": "14"}},
+        json={"filters": {"freshness": choice}},
     )
 
     assert res.status_code == 422

@@ -7,7 +7,8 @@
   - When more than 100 jobs match, the digest no longer drops undated listings first
   - The site's "Date posted" filter dates undated listings by when they were first seen instead of hiding them
 - Save the "Date posted" choice on the subscribe and preferences pages; it was shown but ignored
-  - Subscribers who pick a range get every open job in that range each week, the same list the site shows for their filters
+  - "Last 30 days" gets every open job posted in the last 30 days each week, the same list the site shows for those filters
+  - "Last 7 days" gets the week's new jobs, like no choice; "Older than 30 days" isn't offered for alerts
 - Each digest links to the site's search with the subscriber's filters ("See all 8 open jobs matching your filters"), since the email only lists new jobs
 
 ## 2026-10-15

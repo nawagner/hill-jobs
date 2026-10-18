@@ -4,8 +4,9 @@ ALLOWED_FILTER_KEYS = {
     "q", "role_kind", "organization", "party", "state", "committee", "salary_min", "freshness",
 }
 
-# The site's "Date posted" options: posted in the last N days, or older than 30 days.
-FRESHNESS_VALUES = {"7", "30", "older_30"}
+# The "Date posted" choices the alert forms offer. The site's search also has
+# "older_30", which makes no sense for alerts about new jobs.
+FRESHNESS_VALUES = {"7", "30"}
 
 
 def _clean_filters(v: dict) -> dict:

@@ -17,7 +17,7 @@ Project: `hill-jobs`, Environment: `production`
 - **newsletter-cron** — Weekly "Subscribe to Job Alerts" digest (`apps/api/scripts/send_newsletter.py`)
   - Same Dockerfile (no Chromium); start command `uv run --no-sync python scripts/send_newsletter.py`, cron `30 11 * * 1` (Mondays 11:30 UTC, after the 10:00 ingest), restart policy `NEVER`
   - Variables reference `beneficial-beauty` (`DATABASE_URL`, `RESEND_API_KEY`); sends from `alerts@newsletters.hill-jobs.org` via Resend
-  - Only emails confirmed subscribers with matching jobs first seen in the last 7 days (or every open job in their "Date posted" range, if they picked one), at most once per 6 days; `--dry-run` logs what it would send
+  - Only emails confirmed subscribers with matching jobs first seen or posted in the last 7 days (or every open job posted in the last 30 days, if they picked "Last 30 days"), at most once per 6 days; `--dry-run` logs what it would send
   - Don't try `--test-to EMAIL` by editing this service's start command and schedule: in October 2026 the new schedule took effect but the edited command didn't, and it sent the real weekly digest to every subscriber
 
 ### Useful commands

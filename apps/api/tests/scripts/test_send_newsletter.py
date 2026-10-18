@@ -178,7 +178,29 @@ def test_date_posted_choice_lists_what_the_site_shows(db_session):
     assert "See all 3 open jobs matching your filters" in email["html"]
 
 
-def test_older_than_30_days_choice(db_session):
+def test_last_7_days_choice_gets_the_new_jobs_like_no_choice(db_session):
+    db_session.add_all([
+        _job("this-week", "communications", 2),
+        # Listed under a date before the window, but only ingested this week.
+        _job("ingested-late", "communications", 8, first_seen_days_ago=6),
+        _job("last-month", "communications", 20),
+        _subscriber("reader@example.com", {"role_kind": "communications", "freshness": "7"}),
+    ])
+    db_session.commit()
+    outbox = _Outbox()
+
+    _run(db_session, outbox)
+
+    [email] = outbox.sent
+    assert email["subject"] == "Hill Jobs Weekly: 2 new positions matching your filters"
+    assert "/jobs/this-week" in email["html"] and "/jobs/ingested-late" in email["html"]
+    assert "last-month" not in email["html"]
+    assert 'href="https://hill-jobs.org/?role_kind=communications"' in email["html"]
+    assert "See all 3 open jobs matching your filters" in email["html"]
+
+
+def test_older_than_30_days_saved_by_hand_gets_the_new_jobs(db_session):
+    # The alert forms don't offer it and the API rejects it; ignore it if present.
     db_session.add_all([
         _job("this-week", "communications", 2),
         _job("last-quarter", "communications", 60),
@@ -190,10 +212,8 @@ def test_older_than_30_days_choice(db_session):
     _run(db_session, outbox)
 
     [email] = outbox.sent
-    assert email["subject"] == (
-        "Hill Jobs Weekly: 1 position posted more than 30 days ago matching your filters"
-    )
-    assert "/jobs/last-quarter" in email["html"] and "this-week" not in email["html"]
+    assert email["subject"] == "Hill Jobs Weekly: 1 new position matching your filters"
+    assert "/jobs/this-week" in email["html"] and "last-quarter" not in email["html"]
 
 
 def test_site_search_url_matches_the_site_parameters():
@@ -206,10 +226,14 @@ def test_site_search_url_matches_the_site_parameters():
     # A saved subcommittee needs its parent committee for the site's menus.
     assert url(
         "https://hill-jobs.org",
-        {"organization": "Rep. Sarah McBride", "committee": "HSSY15", "salary_min": "75000", "freshness": "7"},
+        {"organization": "Rep. Sarah McBride", "committee": "HSSY15", "salary_min": "75000", "freshness": "30"},
     ) == (
         "https://hill-jobs.org/?organization=Rep.+Sarah+McBride&committee=HSSY"
-        "&subcommittee=HSSY15&freshness=7&salary=75000"
+        "&subcommittee=HSSY15&freshness=30&salary=75000"
+    )
+    # "Last 7 days" works like no choice, so the link shows every open match.
+    assert url("https://hill-jobs.org", {"party": "D", "freshness": "7"}) == (
+        "https://hill-jobs.org/?party=D"
     )
 
 

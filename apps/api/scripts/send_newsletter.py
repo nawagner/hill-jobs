@@ -2,8 +2,9 @@
 
 Sends digest emails to confirmed subscribers listing the jobs matching their
 filters that Hill Jobs first saw, or that were posted, in the last 7 days.
-Subscribers who picked a "Date posted" range get every open job in that range
-instead, the same list the site shows for their filters. Each email links to
+Subscribers who picked "Last 30 days" get every open job posted in the last 30
+days instead, the same list the site shows for their filters ("Last 7 days" gets
+the new jobs, like no choice). Each email links to
 the site's search with the subscriber's filters. Run weekly by the
 `newsletter-cron` Railway service.
 Pass --dry-run to log what would be sent without sending or recording anything.
@@ -45,11 +46,11 @@ MIN_DAYS_BETWEEN_SENDS = 6
 NEW_JOB_WINDOW_DAYS = 7
 DIGEST_PAGE_SIZE = 100
 
-# The site's "Date posted" choices, as they read in a subject line.
-FRESHNESS_PHRASES = {
-    "7": "posted in the last 7 days",
+# "Date posted" choices that widen an email beyond the week's new jobs, as they
+# read in a subject line. "Last 7 days" ("7") gets the new jobs, like no choice:
+# a range would miss jobs ingested after the date they're listed under.
+RANGE_PHRASES = {
     "30": "posted in the last 30 days",
-    "older_30": "posted more than 30 days ago",
 }
 
 
@@ -87,9 +88,9 @@ def send_digests(
 
         filters = sub.filters or {}
         search = _search_kwargs(filters)
-        freshness = _freshness(filters)
+        date_range = _date_range(filters)
 
-        if freshness:
+        if date_range:
             # A "Date posted" range already limits the jobs, just as on the site.
             jobs, total = query_jobs(
                 session,
@@ -114,8 +115,8 @@ def send_digests(
             continue
 
         plural = "s" if total != 1 else ""
-        if freshness:
-            phrase = FRESHNESS_PHRASES[freshness]
+        if date_range:
+            phrase = RANGE_PHRASES[date_range]
             subject = f"Hill Jobs Weekly: {total} position{plural} {phrase} matching your filters"
             intro = f"Here are the open positions {phrase} that match your filters."
         else:
@@ -190,9 +191,9 @@ def send_test_digest(
     return total
 
 
-def _freshness(filters: dict) -> str | None:
+def _date_range(filters: dict) -> str | None:
     value = filters.get("freshness")
-    return value if value in FRESHNESS_PHRASES else None
+    return value if value in RANGE_PHRASES else None
 
 
 def _search_kwargs(filters: dict) -> dict:
@@ -201,7 +202,7 @@ def _search_kwargs(filters: dict) -> dict:
         salary_min = int(filters["salary_min"]) if filters.get("salary_min") else None
     except (ValueError, TypeError):
         salary_min = None
-    freshness = _freshness(filters)
+    date_range = _date_range(filters)
     return {
         "q": filters.get("q") or None,
         "role_kind": filters.get("role_kind") or None,
@@ -210,8 +211,7 @@ def _search_kwargs(filters: dict) -> dict:
         "state": filters.get("state") or None,
         "committee": filters.get("committee") or None,
         "salary_min": salary_min,
-        "posted_since_days": int(freshness) if freshness and freshness.isdigit() else None,
-        "posted_before_days": 30 if freshness == "older_30" else None,
+        "posted_since_days": int(date_range) if date_range else None,
     }
 
 
@@ -230,7 +230,7 @@ def _site_search_params(filters: dict) -> dict[str, str]:
         params["committee"] = parent or committee
         if parent:
             params["subcommittee"] = committee
-    if _freshness(filters):
+    if _date_range(filters):
         params["freshness"] = filters["freshness"]
     if filters.get("salary_min"):
         params["salary"] = str(filters["salary_min"])

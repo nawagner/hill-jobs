@@ -122,7 +122,7 @@ export function Subscribe() {
             Filter preferences
           </p>
           <p className="text-xs font-body text-slate-400 mb-3">
-            Leave filters empty to get every new job. Choose a "Date posted" range to get every open job in that range each week, not just new ones.
+            Leave filters empty to get every new job. Each email lists the week's new jobs, or every open job from the last 30 days if you pick "Last 30 days".
           </p>
           <Filters
             roleKinds={roleKinds}
@@ -145,6 +145,7 @@ export function Subscribe() {
             onSubcommitteeChange={setSubcommittee}
             onFreshnessChange={setFreshness}
             onSalaryChange={setSalary}
+            showOlderThan30={false}
           />
         </div>
 
