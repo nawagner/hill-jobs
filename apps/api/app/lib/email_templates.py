@@ -50,12 +50,28 @@ def build_confirmation_html(confirm_url: str) -> str:
 </html>"""
 
 
+NEW_JOBS_INTRO = "Here are the positions added to Hill Jobs in the past week that match your filters."
+
+
 def build_digest_html(
-    jobs: list[Job], unsubscribe_token: str, site_base_url: str
+    jobs: list[Job],
+    unsubscribe_token: str,
+    site_base_url: str,
+    *,
+    intro: str = NEW_JOBS_INTRO,
+    search_url: str | None = None,
+    open_total: int | None = None,
+    filtered: bool = False,
 ) -> str:
+    """Render the weekly digest.
+
+    `search_url` and `open_total` power the button under the list, which links
+    to the site's search showing every open job that matches the subscriber's
+    filters.
+    """
     job_rows = []
-    # Grouped by category, then alphabetical by title: every job is from the same
-    # week, so posting order just looks random.
+    # Grouped by category, then alphabetical by title: the jobs were posted within
+    # days of each other, so posting order just looks random.
     for role_kind, group in groupby(sorted(jobs, key=_digest_sort_key), key=lambda j: _digest_sort_key(j)[0]):
         group = list(group)
         padding_top = 8 if not job_rows else 28
@@ -70,6 +86,13 @@ def build_digest_html(
     jobs_html = "\n".join(job_rows)
     preferences_url = f"{site_base_url}/preferences/{unsubscribe_token}"
     unsubscribe_url = preferences_url
+    if open_total is None:
+        see_all_label = "View All Jobs"
+    else:
+        see_all_label = f"See all {open_total} open job{'' if open_total == 1 else 's'}"
+        if filtered:
+            see_all_label += " matching your filters"
+    see_all_url = search_url or site_base_url
 
     return f"""\
 <!DOCTYPE html>
@@ -82,15 +105,15 @@ def build_digest_html(
     </div>
     <div style="padding:32px;">
       <p style="color:#475569;line-height:1.6;margin:0 0 24px;">
-        Here are the latest positions matching your filters from the past week.
+        {escape(intro)}
       </p>
       <table style="width:100%;border-collapse:collapse;">
 {jobs_html}
       </table>
       <div style="margin-top:24px;text-align:center;">
-        <a href="{site_base_url}"
+        <a href="{escape(see_all_url)}"
            style="display:inline-block;background:#fbbf24;color:#0f172a;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
-          View All Jobs
+          {escape(see_all_label)}
         </a>
       </div>
     </div>

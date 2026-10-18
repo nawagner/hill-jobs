@@ -95,6 +95,8 @@ describe("Home", () => {
       expect(screen.getByLabelText("Posted within")).toBeInTheDocument();
       expect(screen.getByLabelText("Salary")).toBeInTheDocument();
     });
+    // Only the alert forms leave this out; the site's search keeps it.
+    expect(screen.getByRole("option", { name: "Older than 30 days" })).toBeInTheDocument();
   });
 
   it("renders results with organization and role kind", async () => {

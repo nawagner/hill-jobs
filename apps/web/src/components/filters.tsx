@@ -23,6 +23,8 @@ interface FiltersProps {
   onSubcommitteeChange: (value: string) => void;
   onFreshnessChange: (value: string) => void;
   onSalaryChange: (value: string) => void;
+  /** Weekly alerts are about recent jobs, so their forms leave out "Older than 30 days". */
+  showOlderThan30?: boolean;
 }
 
 const salaryOptions = [
@@ -82,6 +84,7 @@ export function Filters({
   onSubcommitteeChange,
   onFreshnessChange,
   onSalaryChange,
+  showOlderThan30 = true,
 }: FiltersProps) {
   const { officeGroups, members } = useMemo(() => {
     const mems: OrganizationItem[] = [];
@@ -275,11 +278,13 @@ export function Filters({
         onChange={(e) => onFreshnessChange(e.target.value)}
         className={selectClasses}
       >
-        {freshnessOptions.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
+        {freshnessOptions
+          .filter((opt) => showOlderThan30 || opt.value !== "older_30")
+          .map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
       </select>
 
       <select

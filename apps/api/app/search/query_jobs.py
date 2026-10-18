@@ -15,6 +15,8 @@ def query_jobs(
     status: str | None = None,
     posted_since_days: int | None = None,
     posted_before_days: int | None = None,
+    new_since: datetime | None = None,
+    order_undated_by_first_seen: bool = False,
     salary_min: int | None = None,
     party: str | None = None,
     state: str | None = None,
@@ -37,13 +39,24 @@ def query_jobs(
     if organization:
         stmt = stmt.where(Job.source_organization == organization)
 
+    # HVAPS and CSOD listings have no posting date; date them by when we first
+    # saw them, or every date filter (and the newsletter) would hide them.
+    posted_on = func.coalesce(Job.posted_at, Job.first_seen_at)
+
     if posted_since_days is not None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=posted_since_days)
-        stmt = stmt.where(Job.posted_at >= cutoff)
+        stmt = stmt.where(posted_on >= cutoff)
 
     if posted_before_days is not None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=posted_before_days)
-        stmt = stmt.where(Job.posted_at < cutoff)
+        stmt = stmt.where(posted_on < cutoff)
+
+    if new_since is not None:
+        # New to Hill Jobs since then (covers undated and late-ingested
+        # listings), or (re)posted since then.
+        stmt = stmt.where(
+            or_(Job.first_seen_at >= new_since, Job.posted_at >= new_since)
+        )
 
     if salary_min is not None:
         if salary_min == 0:
@@ -104,8 +117,10 @@ def query_jobs(
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = session.execute(count_stmt).scalar() or 0
 
-    # Apply pagination and ordering
-    stmt = stmt.order_by(Job.posted_at.desc().nullslast(), Job.id.desc())
+    # Apply pagination and ordering. The site lists undated jobs last; the
+    # newsletter dates them by first_seen_at so its 100-job cap doesn't drop them first.
+    newest = posted_on if order_undated_by_first_seen else Job.posted_at
+    stmt = stmt.order_by(newest.desc().nullslast(), Job.id.desc())
     stmt = stmt.offset((page - 1) * page_size).limit(page_size)
 
     items = list(session.execute(stmt).scalars().all())

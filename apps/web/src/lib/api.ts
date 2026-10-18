@@ -161,6 +161,8 @@ export interface SubscribeFilters {
   party?: string;
   state?: string;
   committee?: string;
+  /** "Date posted" choice: "7", "30" or "older_30". */
+  freshness?: string;
   salary_min?: string;
 }
 

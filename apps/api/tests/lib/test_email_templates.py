@@ -72,3 +72,43 @@ def test_digest_groups_jobs_by_category_then_title():
     ]
     positions = [html.index(marker) for marker in expected]
     assert positions == sorted(positions)
+
+
+def test_digest_links_to_every_open_match_on_the_site():
+    job = SimpleNamespace(
+        slug="aide",
+        role_kind="operations",
+        title="Aide",
+        source_organization="Rep. Smith",
+        salary_min=None,
+        salary_max=None,
+        salary_period=None,
+        posted_at=None,
+    )
+
+    html = build_digest_html(
+        [job],
+        "token-123",
+        "https://hill-jobs.org",
+        intro="Here are the open positions posted in the last 30 days that match your filters.",
+        search_url="https://hill-jobs.org/?party=D&committee=HSSY",
+        open_total=8,
+        filtered=True,
+    )
+
+    assert "posted in the last 30 days that match your filters." in html
+    assert 'href="https://hill-jobs.org/?party=D&amp;committee=HSSY"' in html
+    assert "See all 8 open jobs matching your filters" in html
+    assert "View All Jobs" not in html
+
+
+def test_digest_see_all_button_singular_and_unfiltered():
+    job = SimpleNamespace(
+        slug="aide", role_kind="operations", title="Aide", source_organization="Rep. Smith",
+        salary_min=None, salary_max=None, salary_period=None, posted_at=None,
+    )
+
+    html = build_digest_html([job], "token-123", "https://hill-jobs.org", open_total=1)
+
+    assert "See all 1 open job\n" in html
+    assert 'href="https://hill-jobs.org"' in html
