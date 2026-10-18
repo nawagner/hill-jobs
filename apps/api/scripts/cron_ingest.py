@@ -33,14 +33,15 @@ from app.ingest.adapters.hvaps_email import HvapsEmailAdapter
 from app.ingest.adapters.loc import LocAdapter
 from app.ingest.adapters.senate import SenateAdapter
 from app.ingest.adapters.usajobs import UsajobsAdapter, GAO_CONFIG, GPO_CONFIG
-from app.ingest.run_all import run_all_sources
+from app.ingest.run_all import SyncRunResult, run_all_sources
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 # Sources that may legitimately return 0 jobs (no openings, or no credentials).
+# CSOD sources aren't listed: a site that confirms it has no openings syncs as
+# "success", and one that can't be read is an "error".
 ALLOW_EMPTY = {
-    "csod-house-saa",
     "aoc-usajobs",
     "gao-usajobs",
     "gpo-usajobs",
@@ -80,6 +81,15 @@ def build_registry(settings: Settings):
     return registry
 
 
+def failed_sources(results: dict[str, SyncRunResult]) -> list[str]:
+    """Sources that errored, or returned no jobs without being allowed to."""
+    return [
+        name
+        for name, r in results.items()
+        if r.status == "error" or (r.status == "empty" and name not in ALLOW_EMPTY)
+    ]
+
+
 def main():
     settings = Settings()
     engine = get_engine()
@@ -96,15 +106,13 @@ def main():
         session.close()
         engine.dispose()
 
-    failures = []
     for name, r in results.items():
         status = f"  {name}: {r.status} — found={r.jobs_found} created={r.created} updated={r.updated} closed={r.closed}"
         if r.error:
             status += f" error={r.error}"
         print(status)
-        if r.status == "error" or (r.status == "empty" and name not in ALLOW_EMPTY):
-            failures.append(name)
 
+    failures = failed_sources(results)
     if failures:
         logger.error("Sources failed or returned no jobs: %s", ", ".join(failures))
         sys.exit(1)

@@ -2,6 +2,10 @@
 
 ## 2026-10-18
 
+- Fix the daily ingest failing when the Clerk's or Sergeant at Arms' career site has no openings
+  - The House and Capitol Police (CSOD) scraper now reads each site's own job count, so a site with no openings is a successful run with 0 jobs instead of a failure
+  - A CSOD page that doesn't load, or doesn't show the jobs its count reports, is now reported as an error instead of silently returning no jobs
+  - Stale jobs from a site with no openings now get closed like any other source's missing jobs; the Clerk and Sergeant at Arms each still showed one old job as open
 - Fix the weekly newsletter leaving out listings with no posting date: all 26 HVAPS and 59 House and Capitol Police (CSOD) listings, 85 of 311 open jobs, never reached any subscriber
   - A job is new when Hill Jobs first saw it, or it was (re)posted, in the past week, so undated and late-ingested listings are included from now on. Undated listings already on the site aren't new, so they're reached through the digest's new link instead
   - When more than 100 jobs match, the digest no longer drops undated listings first
