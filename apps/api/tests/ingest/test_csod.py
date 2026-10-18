@@ -86,7 +86,7 @@ def _search_body(total_count) -> dict:
 
 
 def _item(title: str, href: str, req_id: str = "") -> dict:
-    """One link as _EXTRACT_JOBS_JS returns it."""
+    """One job item as _items_from_requisitions builds it."""
     return {"title": title, "href": href, "reqId": req_id}
 
 
@@ -166,7 +166,8 @@ def test_jobs_from_listing_builds_source_jobs_from_links():
         _item("Systems Engineer", "https://other.csod.com/requisition/103", ""),
         _item("Records Clerk", "", ""),
     ]
-    jobs = csod._jobs_from_listing(TEST_CONFIG, _search_body(len(items)), items)
+    # The site counts the three titled jobs; the blank-titled item isn't a job.
+    jobs = csod._jobs_from_listing(TEST_CONFIG, _search_body(3), items)
 
     assert [j.title for j in jobs] == ["Staff Assistant", "Systems Engineer", "Records Clerk"]
     assert [j.source_url for j in jobs] == [
@@ -185,11 +186,265 @@ def test_jobs_from_listing_builds_source_jobs_from_links():
         assert job.location_text is None
 
 
-def test_jobs_from_listing_count_above_rendered_links_is_not_an_error():
-    # The listing shows 25 jobs per page; pagination is handled separately.
+def test_jobs_from_listing_fewer_jobs_than_count_raises():
+    # A partial listing would make mark_missing_jobs close the jobs it left out,
+    # as when only the first 25 of Green & Gold's 33 openings were read.
     items = [_item(f"Fellow {n}", f"/requisition/{n}", str(n)) for n in range(25)]
+    with pytest.raises(csod.CsodScrapeError) as excinfo:
+        csod._jobs_from_listing(TEST_CONFIG, _search_body(33), items)
+    assert "33" in str(excinfo.value) and "25" in str(excinfo.value)
+
+
+def test_jobs_from_listing_blank_title_that_leaves_too_few_jobs_raises():
+    # Dropping a counted job for its blank title would let mark_missing_jobs close it.
+    items = [_item(f"Fellow {n}", f"/requisition/{n}", str(n)) for n in range(32)]
+    items.append(_item("", "/requisition/32", "32"))
+    with pytest.raises(csod.CsodScrapeError) as excinfo:
+        csod._jobs_from_listing(TEST_CONFIG, _search_body(33), items)
+    assert "33" in str(excinfo.value) and "32" in str(excinfo.value)
+
+
+def test_jobs_from_listing_reads_every_job_when_count_matches():
+    items = [_item(f"Fellow {n}", f"/requisition/{n}", str(n)) for n in range(33)]
     jobs = csod._jobs_from_listing(TEST_CONFIG, _search_body(33), items)
-    assert len(jobs) == 25
+    assert len(jobs) == 33
+
+
+# ── Reading every page of the job search (no browser) ──────────────────
+
+
+def _requisition(req_id: int, title: str | None = None) -> dict:
+    """One entry of data.requisitions in a job-search response."""
+    return {
+        "requisitionId": req_id,
+        "displayJobTitle": title if title is not None else f"Job {req_id}",
+        "postingEffectiveDate": "10/16/2026",
+        "postingExpirationDate": "6/30/2027",
+        "locations": [],
+        "externalDescription": "",
+    }
+
+
+def _page_body(total_count: int, req_ids) -> dict:
+    body = _search_body(total_count)
+    body["data"]["requisitions"] = [_requisition(i) for i in req_ids]
+    return body
+
+
+class _PageFetcher:
+    """Stands in for replaying the job-search request for a given page number."""
+
+    def __init__(self, pages: dict[int, dict | None]):
+        self.pages = pages
+        self.calls: list[int] = []
+
+    def __call__(self, page_number: int) -> dict | None:
+        self.calls.append(page_number)
+        return self.pages.get(page_number)
+
+
+def test_collect_requisitions_reads_every_page():
+    fetch = _PageFetcher({2: _page_body(33, range(25, 33))})
+    reqs = csod._collect_requisitions(_page_body(33, range(25)), fetch)
+    assert [r["requisitionId"] for r in reqs] == list(range(33))
+    assert fetch.calls == [2]
+
+
+def test_collect_requisitions_stops_once_count_is_reached():
+    fetch = _PageFetcher({})
+    reqs = csod._collect_requisitions(_page_body(4, range(4)), fetch)
+    assert len(reqs) == 4
+    assert fetch.calls == []
+
+
+@pytest.mark.parametrize("second_page", [None, _page_body(33, [])], ids=["failed", "empty"])
+def test_collect_requisitions_stops_on_failed_or_empty_page(second_page):
+    fetch = _PageFetcher({2: second_page, 3: _page_body(33, range(25, 33))})
+    reqs = csod._collect_requisitions(_page_body(33, range(25)), fetch)
+    assert len(reqs) == 25
+    assert fetch.calls == [2]
+
+
+def test_collect_requisitions_drops_repeats_across_pages():
+    # A job posted mid-scrape can shift one listing onto the next page.
+    fetch = _PageFetcher({
+        2: _page_body(30, [24] + list(range(25, 29))),
+        3: _page_body(30, [29]),
+    })
+    reqs = csod._collect_requisitions(_page_body(30, range(25)), fetch)
+    assert [r["requisitionId"] for r in reqs] == list(range(30))
+    assert fetch.calls == [2, 3]
+
+
+def test_collect_requisitions_stops_when_a_page_adds_nothing_new():
+    # E.g. the API ignores pageNumber and keeps returning page 1.
+    fetch = _PageFetcher({n: _page_body(33, range(25)) for n in range(2, 41)})
+    reqs = csod._collect_requisitions(_page_body(33, range(25)), fetch)
+    assert len(reqs) == 25
+    assert fetch.calls == [2]
+
+
+def test_collect_requisitions_stops_after_a_page_limit():
+    class _Endless:
+        calls = 0
+
+        def __call__(self, page_number):
+            self.calls += 1
+            return _page_body(10_000, [100_000 + page_number])
+
+    fetch = _Endless()
+    reqs = csod._collect_requisitions(_page_body(10_000, range(25)), fetch)
+    assert fetch.calls < 100
+    assert len(reqs) == 25 + fetch.calls
+
+
+def test_items_from_requisitions_match_the_listing_links():
+    url = "https://house.csodfed.com/ux/ats/careersite/11/home?c=house"
+    items = csod._items_from_requisitions(
+        url, [_requisition(5667, "  Green & Gold Congressional Aide "), _requisition(5670, None)]
+    )
+    assert items[0] == {
+        "title": "Green & Gold Congressional Aide",
+        "href": "/ux/ats/careersite/11/home/requisition/5667?c=house",
+        "reqId": "5667",
+    }
+    assert items[1]["href"] == "/ux/ats/careersite/11/home/requisition/5670?c=house"
+
+
+def test_items_from_requisitions_blank_title_is_kept_blank():
+    url = "https://uscp.csodfed.com/ux/ats/careersite/1/home?c=uscp"
+    [item] = csod._items_from_requisitions(url, [{"requisitionId": 837, "displayJobTitle": None}])
+    assert item == {"title": "", "href": "/ux/ats/careersite/1/home/requisition/837?c=uscp", "reqId": "837"}
+
+
+_SEARCH_URL = "https://us-il2-hs.api.csodfed.com/rec-job-search/external/jobs"
+_SEARCH_REQUEST = {"careerSiteId": 11, "careerSitePageId": 11, "pageNumber": 1, "pageSize": 25, "cultureId": 1}
+_GG_URL = "https://house.csodfed.com/ux/ats/careersite/11/home?c=house"
+
+
+class _FakeAPIResponse:
+    def __init__(self, status: int = 200, body=None, bad_json: bool = False):
+        self.status = status
+        self.ok = 200 <= status < 300
+        self._body = body
+        self._bad_json = bad_json
+
+    def json(self):
+        if self._bad_json:
+            raise ValueError("Unexpected token < in JSON")
+        return self._body
+
+
+class _FakeRequestContext:
+    """Stands in for page.request: replays of the job-search request, keyed by page number."""
+
+    def __init__(self, replies: dict):
+        self.replies = replies
+        self.calls: list[dict] = []
+
+    def post(self, url, headers=None, data=None, timeout=None):
+        body = json.loads(data)
+        self.calls.append({"url": url, "headers": headers, "body": body})
+        reply = self.replies.get(body["pageNumber"], _FakeAPIResponse(200, _page_body(0, [])))
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+
+
+class _FakeListingPage:
+    """Stands in for a Playwright page on a CSOD listing: page 1 arrives with navigation."""
+
+    def __init__(self, first_body: dict, replies: dict | None = None):
+        self.first_body = first_body
+        self.request = _FakeRequestContext(replies or {})
+        self.url = "about:blank"
+
+    @contextmanager
+    def expect_response(self, predicate, timeout=None):
+        info = SimpleNamespace(value=None)
+        yield info
+        response = SimpleNamespace(
+            status=200,
+            url=_SEARCH_URL,
+            json=lambda: self.first_body,
+            request=SimpleNamespace(
+                method="POST",
+                post_data=json.dumps(_SEARCH_REQUEST),
+                headers={
+                    "authorization": "Bearer token",
+                    "content-type": "application/json",
+                    "cookie": "session=1",
+                    "content-length": "200",
+                },
+            ),
+        )
+        assert predicate(response)
+        info.value = response
+
+    def goto(self, url, **kwargs):
+        self.url = url
+
+
+@pytest.fixture
+def _no_debug_dumps(monkeypatch):
+    monkeypatch.delenv("CSOD_DEBUG_DIR", raising=False)
+
+
+def test_load_listing_reads_later_pages_by_replaying_the_search(_no_debug_dumps):
+    page = _FakeListingPage(
+        _page_body(33, range(25)), {2: _FakeAPIResponse(200, _page_body(33, range(25, 33)))}
+    )
+
+    body, items = csod._load_listing(page, _GG_URL)
+
+    assert body["data"]["totalCount"] == 33
+    assert [item["reqId"] for item in items] == [str(n) for n in range(33)]
+    [call] = page.request.calls
+    assert call["url"] == _SEARCH_URL
+    assert call["body"] == {**_SEARCH_REQUEST, "pageNumber": 2}
+    assert call["headers"] == {"authorization": "Bearer token", "content-type": "application/json"}
+
+
+def test_load_listing_does_not_replay_when_page_one_has_every_job(_no_debug_dumps):
+    page = _FakeListingPage(_page_body(4, range(4)))
+    _, items = csod._load_listing(page, _GG_URL)
+    assert len(items) == 4
+    assert page.request.calls == []
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        # A body that would add jobs if the status were ignored.
+        _FakeAPIResponse(500, _page_body(33, range(25, 33))),
+        _FakeAPIResponse(200, bad_json=True),
+        PlaywrightError("Request context disposed"),
+    ],
+    ids=["status-500", "not-json", "request-error"],
+)
+def test_load_listing_unreadable_page_leaves_a_short_list_that_raises(_no_debug_dumps, reply):
+    page = _FakeListingPage(_page_body(33, range(25)), {2: reply})
+
+    body, items = csod._load_listing(page, _GG_URL)
+
+    assert len(items) == 25
+    with pytest.raises(csod.CsodScrapeError):
+        csod._jobs_from_listing(HOUSE_GREEN_GOLD_CONFIG, body, items)
+
+
+def test_jobs_built_from_every_page_keep_their_ids_and_urls():
+    url = f"{HOUSE_GREEN_GOLD_CONFIG.base_url}{HOUSE_GREEN_GOLD_CONFIG.listing_path}"
+    first = _page_body(33, range(5000, 5025))
+    fetch = _PageFetcher({2: _page_body(33, range(5025, 5033))})
+    items = csod._items_from_requisitions(url, csod._collect_requisitions(first, fetch))
+
+    jobs = csod._jobs_from_listing(HOUSE_GREEN_GOLD_CONFIG, first, items)
+
+    assert len(jobs) == 33
+    assert jobs[-1].source_job_id == "5032"
+    assert jobs[-1].source_url == (
+        "https://house.csodfed.com/ux/ats/careersite/11/home/requisition/5032?c=house"
+    )
 
 
 # ── CsodAdapter.fetch_jobs (fake browser, no network) ───────────────────

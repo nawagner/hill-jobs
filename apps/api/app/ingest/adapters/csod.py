@@ -4,29 +4,24 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+from playwright.sync_api import Error as PlaywrightError, sync_playwright, TimeoutError as PlaywrightTimeout
 
 from app.ingest.salary_parser import parse_salary_from_text
 from app.schemas.ingest import SourceJob
 
 logger = logging.getLogger(__name__)
 
-# JS snippet to extract job data from the rendered CSOD career-site SPA.
-# Returns a JSON array of objects with title, href, and requisitionId.
-_EXTRACT_JOBS_JS = (
-    "JSON.stringify(Array.from(document.querySelectorAll('a[href*=requisition]'))"
-    ".map(a=>({"
-    "title:a.textContent.trim(),"
-    "href:a.getAttribute('href'),"
-    "reqId:(a.getAttribute('href').match(/requisition\\/(\\d+)/)||[])[1]||''"
-    "})))"
-)
-
 # The career-site SPA POSTs to this API to list jobs; its response's
-# data.totalCount says how many openings the site has.
+# data.totalCount says how many openings the site has, and data.requisitions
+# holds one page of them (25 by default).
 _JOB_SEARCH_PATH = "rec-job-search/external/jobs"
+# Headers the SPA sends that a replayed job-search request needs (auth included).
+_REPLAY_HEADERS = {"authorization", "content-type", "accept", "csod-accept-language"}
+# Upper bound on job-search pages read per site (25 jobs each).
+_MAX_PAGES = 40
 
 # JS snippet to extract detail fields from a CSOD requisition detail page.
 _EXTRACT_DETAIL_JS = (
@@ -189,12 +184,67 @@ def _jobs_from_listing(
             )
         )
 
-    if not jobs:
+    # A partial list (a page not read, or a job dropped for a blank title)
+    # would let mark_missing_jobs close the jobs it left out.
+    if len(jobs) < total:
         raise CsodScrapeError(
             f"CSOD {config.source_system}: job search reports {total} openings "
-            "but no job links were found"
+            f"but only {len(jobs)} were read"
         )
     return jobs
+
+
+def _collect_requisitions(first_body: dict, fetch_page) -> list[dict]:
+    """Every requisition across the job search's pages, without repeats.
+
+    `first_body` is the page-1 response; `fetch_page(n)` returns the response
+    body for page n, or None if it couldn't be read. Stops once the reported
+    totalCount is reached, when a page fails or adds no new jobs, or after
+    _MAX_PAGES pages. The caller checks the result against totalCount.
+    """
+    total = _total_count(first_body) or 0
+    requisitions: list[dict] = []
+    seen: set = set()
+
+    def add(page_body) -> int:
+        data = page_body.get("data") if isinstance(page_body, dict) else None
+        page_reqs = data.get("requisitions") if isinstance(data, dict) else None
+        added = 0
+        for req in page_reqs if isinstance(page_reqs, list) else []:
+            req_id = req.get("requisitionId") if isinstance(req, dict) else None
+            if req_id is None or req_id in seen:
+                continue
+            seen.add(req_id)
+            requisitions.append(req)
+            added += 1
+        return added
+
+    add(first_body)
+    page_number = 1
+    while len(requisitions) < total and page_number < _MAX_PAGES:
+        page_number += 1
+        if not add(fetch_page(page_number)):
+            break
+    return requisitions
+
+
+def _items_from_requisitions(listing_url: str, requisitions: list[dict]) -> list[dict]:
+    """Job items ({title, href, reqId}) as the listing page links them.
+
+    The page links each job at <listing path>/requisition/<id>?<listing query>,
+    e.g. /ux/ats/careersite/11/home/requisition/5667?c=house.
+    """
+    parts = urlsplit(listing_url)
+    query = f"?{parts.query}" if parts.query else ""
+    items = []
+    for req in requisitions:
+        req_id = req.get("requisitionId")
+        items.append({
+            "title": (req.get("displayJobTitle") or "").strip(),
+            "href": f"{parts.path}/requisition/{req_id}{query}",
+            "reqId": str(req_id) if req_id is not None else "",
+        })
+    return items
 
 
 def _is_job_search_response(response) -> bool:
@@ -202,11 +252,13 @@ def _is_job_search_response(response) -> bool:
 
 
 def _load_listing(page, listing_url: str) -> tuple[dict | None, list[dict]]:
-    """Open a career-site listing; return (job-search response body, job links).
+    """Open a career-site listing; return (job-search response body, job items).
 
     The body is the parsed JSON the SPA gets from its job-search API, or None if
-    that response never came, wasn't a 200 or wasn't JSON. Job links are only
-    waited for when the body reports openings. Navigation errors propagate.
+    that response never came, wasn't a 200 or wasn't JSON. When it reports
+    openings, the remaining pages are read by replaying the SPA's own request
+    with the next page number, and every job becomes an item. Navigation errors
+    propagate.
     """
     label = re.sub(r"[^A-Za-z0-9]+", "-", listing_url.split("://", 1)[-1]).strip("-")
     body = None
@@ -236,16 +288,38 @@ def _load_listing(page, listing_url: str) -> tuple[dict | None, list[dict]]:
     if total == 0:
         return body, []
 
+    request = response.request
     try:
-        page.wait_for_selector("a[href*=requisition]", timeout=15000)
-    except PlaywrightTimeout:
-        logger.warning("CSOD %s: timed out waiting for job links", listing_url)
-        _dump_debug_artifacts(page, label, "listing-timeout")
-        return body, []
+        request_body = json.loads(request.post_data or "{}")
+    except ValueError:
+        request_body = {}
+    headers = {k: v for k, v in request.headers.items() if k.lower() in _REPLAY_HEADERS}
 
-    raw = page.evaluate(_EXTRACT_JOBS_JS)
-    items = json.loads(raw) if isinstance(raw, str) else raw
-    return body, items
+    def fetch_page(page_number: int) -> dict | None:
+        try:
+            replay = page.request.post(
+                response.url,
+                headers=headers,
+                data=json.dumps({**request_body, "pageNumber": page_number}),
+                timeout=30000,
+            )
+            if not replay.ok:
+                logger.warning(
+                    "CSOD %s: job-search page %d status %d", listing_url, page_number, replay.status
+                )
+                return None
+            return replay.json()
+        except (PlaywrightError, ValueError):
+            logger.warning("CSOD %s: couldn't read job-search page %d", listing_url, page_number)
+            return None
+
+    requisitions = _collect_requisitions(body, fetch_page)
+    if len(requisitions) < total:
+        logger.warning(
+            "CSOD %s: read %d of %d jobs from the job search", listing_url, len(requisitions), total
+        )
+        _dump_debug_artifacts(page, label, "partial-listing")
+    return body, _items_from_requisitions(listing_url, requisitions)
 
 
 def _dump_debug_artifacts(page, source_system: str, tag: str) -> None:
