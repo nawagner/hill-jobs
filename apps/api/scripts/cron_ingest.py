@@ -31,6 +31,7 @@ from app.ingest.adapters.csod import (
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
 from app.ingest.adapters.hvaps_email import HvapsEmailAdapter
 from app.ingest.adapters.loc import LocAdapter
+from app.ingest.adapters.manual import ManualAdapter
 from app.ingest.adapters.senate import SenateAdapter
 from app.ingest.adapters.usajobs import UsajobsAdapter, GAO_CONFIG, GPO_CONFIG
 from app.ingest.run_all import SyncRunResult, run_all_sources
@@ -52,6 +53,8 @@ ALLOW_EMPTY = {
 
 def build_registry(settings: Settings):
     registry = {
+        # First, so an HVAPS or Domewatch copy of a manual listing is skipped.
+        "manual": ManualAdapter(),
         "senate-webscribble": SenateAdapter(),
         "loc-careers": LocAdapter(),
         "house-dems-resumebank": HouseDemsResumebankAdapter(),

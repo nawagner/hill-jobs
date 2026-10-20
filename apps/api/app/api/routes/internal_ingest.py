@@ -13,6 +13,7 @@ from app.ingest.adapters.cbo_bizmerlin import CboBizmerlinAdapter
 from app.ingest.adapters.house_dems_resumebank import HouseDemsResumebankAdapter
 from app.ingest.adapters.hvaps import parse_hvaps_source_jobs
 from app.ingest.adapters.loc import LocAdapter
+from app.ingest.adapters.manual import ManualAdapter
 from app.ingest.adapters.senate import SenateAdapter
 from app.ingest.adapters.usajobs import UsajobsAdapter, GAO_CONFIG, GPO_CONFIG
 from app.ingest.mark_missing_jobs import mark_missing_jobs
@@ -30,6 +31,8 @@ def build_registry(settings: Settings) -> dict[str, SourceAdapter]:
     # CSOD adapters (house-cao, house-clerk, house-saa, house-green-gold,
     # uscp) require agent-browser and are run locally instead of on the server.
     registry: dict[str, SourceAdapter] = {
+        # First, so an HVAPS or Domewatch copy of a manual listing is skipped.
+        "manual": ManualAdapter(),
         "senate-webscribble": SenateAdapter(),
         "loc-careers": LocAdapter(),
         "house-dems-resumebank": HouseDemsResumebankAdapter(),

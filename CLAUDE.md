@@ -101,6 +101,9 @@ curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/i
 | `CsodAdapter` | `csod-house-cao`, `csod-house-clerk`, `csod-house-saa`, `csod-house-green-gold`, `csod-uscp` | Playwright (Chromium) | Railway cron |
 | `HvapsEmailAdapter` | `house-hvaps` | Gmail IMAP → PDF parsing | Railway cron |
 | HVAPS endpoint | `house-hvaps` | PDF parsing (manual URL fallback) | Railway API |
+| `ManualAdapter` | `manual` | Hand-added entries in `apps/api/app/data/manual_jobs.py` | Railway cron |
+
+To post a job that no source carries (e.g. one an office announced only in a press release), add an entry to `MANUAL_JOBS`; it goes live at the next daily ingest after the merge deploys. Remove the entry, or set `closing_at`, to close it. An HVAPS or Domewatch copy of the same office and title is skipped as a duplicate while the manual entry is open.
 
 ## Changelog
 
