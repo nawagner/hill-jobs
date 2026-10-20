@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 
 # Source systems known to overlap — checked for cross-source duplicates
 _CROSS_SOURCE_PAIRS: dict[str, list[str]] = {
-    "house-hvaps": ["house-dems-resumebank"],
-    "house-dems-resumebank": ["house-hvaps"],
+    "house-hvaps": ["house-dems-resumebank", "manual"],
+    "house-dems-resumebank": ["house-hvaps", "manual"],
+    "manual": ["house-hvaps", "house-dems-resumebank"],
 }
 
 

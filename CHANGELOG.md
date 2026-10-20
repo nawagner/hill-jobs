@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-20
+
+- Add a `manual` source for jobs no adapter reads, kept in `apps/api/app/data/manual_jobs.py` and synced by the daily ingest like any other source
+  - First entry: Rep. Nathaniel Moran's Artificial Intelligence Policy Fellow, announced only in a press release
+  - An HVAPS or Domewatch listing with the same office and title is skipped as a duplicate, and a manual entry skips one already on the site
+
 ## 2026-10-18
 
 - Fix the House and Capitol Police (CSOD) scraper reading only the first page of a career site's jobs (25 per page)
