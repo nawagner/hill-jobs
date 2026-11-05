@@ -305,6 +305,31 @@ def test_filter_by_party_republican(test_client, db_session):
     assert "aoc-comms" not in slugs
 
 
+def test_party_filter_finds_new_member_resume_bank_jobs(test_client, db_session):
+    for party, org, source in (
+        ("dem", "House Democratic Members-Elect", "csod-house-new-member-dems"),
+        ("gop", "House Republican Members-Elect", "csod-house-new-member-gop"),
+    ):
+        db_session.add(Job(
+            slug=f"new-member-{party}",
+            title="Member-Elect 2026 - Chief of Staff",
+            source_organization=org,
+            source_system=source,
+            source_job_id=f"nm-{party}",
+            source_url=f"https://example.com/nm-{party}",
+            status="open",
+            role_kind="leadership",
+            description_html="<p>Resume bank</p>",
+            description_text="Resume bank",
+        ))
+    db_session.commit()
+
+    dems = {i["slug"] for i in test_client.get("/api/jobs", params={"party": "D"}).json()["items"]}
+    gop = {i["slug"] for i in test_client.get("/api/jobs", params={"party": "R"}).json()["items"]}
+    assert dems == {"new-member-dem"}
+    assert gop == {"new-member-gop"}
+
+
 def test_filter_by_state(test_client, db_session):
     _seed_member_jobs(db_session)
     # Schiff and AOC are CA and NY respectively

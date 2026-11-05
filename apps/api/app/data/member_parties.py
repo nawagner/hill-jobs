@@ -653,4 +653,7 @@ MEMBER_PARTIES: dict[str, str] = {
     "Rep. Yvette D. Clarke": "D",
     "Rep. Zachary Nunn": "R",
     "Rep. Zoe Lofgren": "D",
+    # --- New Member Resume Bank (csod-house-new-member-*) ---
+    "House Democratic Members-Elect": "D",
+    "House Republican Members-Elect": "R",
 }

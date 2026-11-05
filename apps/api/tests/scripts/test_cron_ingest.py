@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -100,3 +101,10 @@ def test_main_exits_nonzero_when_house_saa_is_empty(monkeypatch):
     with pytest.raises(SystemExit) as excinfo:
         cron_ingest.main()
     assert excinfo.value.code == 1
+
+
+def test_registry_includes_new_member_resume_banks():
+    settings = SimpleNamespace(usajobs_api_key=None, usajobs_user_agent_email=None)
+    registry = cron_ingest.build_registry(settings)
+    assert registry["csod-house-new-member-dems"].config.career_site_id == 14
+    assert registry["csod-house-new-member-gop"].config.career_site_id == 16

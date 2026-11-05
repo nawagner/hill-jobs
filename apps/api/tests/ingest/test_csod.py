@@ -13,6 +13,8 @@ from app.ingest.adapters.csod import (
     HOUSE_CAO_CONFIG,
     HOUSE_CLERK_CONFIG,
     HOUSE_GREEN_GOLD_CONFIG,
+    HOUSE_NEW_MEMBER_DEMS_CONFIG,
+    HOUSE_NEW_MEMBER_GOP_CONFIG,
     HOUSE_SAA_CONFIG,
     _apply_detail,
 )
@@ -38,6 +40,21 @@ def test_house_csod_configs():
 
     assert HOUSE_GREEN_GOLD_CONFIG.career_site_id == 11
     assert HOUSE_GREEN_GOLD_CONFIG.listing_path == "/ux/ats/careersite/11/home?c=house"
+
+
+def test_new_member_resume_bank_configs():
+    # The two career sites house.gov's New Member Resume Bank page links to.
+    assert HOUSE_NEW_MEMBER_DEMS_CONFIG.base_url == "https://house.csodfed.com"
+    assert HOUSE_NEW_MEMBER_DEMS_CONFIG.listing_path == "/ux/ats/careersite/14/home?c=house"
+    assert HOUSE_NEW_MEMBER_GOP_CONFIG.base_url == "https://house.csodfed.com"
+    assert HOUSE_NEW_MEMBER_GOP_CONFIG.listing_path == "/ux/ats/careersite/16/home?c=house"
+
+
+def test_new_member_resume_bank_organizations_have_a_party():
+    from app.data.member_parties import MEMBER_PARTIES
+
+    assert MEMBER_PARTIES[HOUSE_NEW_MEMBER_DEMS_CONFIG.source_organization] == "D"
+    assert MEMBER_PARTIES[HOUSE_NEW_MEMBER_GOP_CONFIG.source_organization] == "R"
 
 
 def test_apply_detail_enriches_job():

@@ -81,6 +81,26 @@ HOUSE_GREEN_GOLD_CONFIG = CsodConfig(
     site_param="house",
 )
 
+# New Member Resume Bank: one career site per party, collecting resumes for
+# the offices of newly elected Members ahead of a new Congress. Linked from
+# house.gov/employment/positions-with-members-and-committees/new-member-resume-bank.
+# Organization names are in MEMBER_PARTIES so the party filter finds them.
+HOUSE_NEW_MEMBER_DEMS_CONFIG = CsodConfig(
+    source_system="csod-house-new-member-dems",
+    source_organization="House Democratic Members-Elect",
+    base_url="https://house.csodfed.com",
+    career_site_id=14,
+    site_param="house",
+)
+
+HOUSE_NEW_MEMBER_GOP_CONFIG = CsodConfig(
+    source_system="csod-house-new-member-gop",
+    source_organization="House Republican Members-Elect",
+    base_url="https://house.csodfed.com",
+    career_site_id=16,
+    site_param="house",
+)
+
 USCP_CONFIG = CsodConfig(
     source_system="csod-uscp",
     source_organization="U.S. Capitol Police",
