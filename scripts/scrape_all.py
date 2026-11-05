@@ -33,6 +33,8 @@ from app.ingest.adapters.csod import (
     HOUSE_CLERK_CONFIG,
     HOUSE_SAA_CONFIG,
     HOUSE_GREEN_GOLD_CONFIG,
+    HOUSE_NEW_MEMBER_DEMS_CONFIG,
+    HOUSE_NEW_MEMBER_GOP_CONFIG,
     USCP_CONFIG,
 )
 from app.ingest.adapters.hvaps_email import HvapsEmailAdapter
@@ -86,6 +88,8 @@ def main():
         ("csod_house_clerk", CsodAdapter(HOUSE_CLERK_CONFIG)),
         ("csod_house_saa", CsodAdapter(HOUSE_SAA_CONFIG)),
         ("csod_house_green_gold", CsodAdapter(HOUSE_GREEN_GOLD_CONFIG)),
+        ("csod_house_new_member_dems", CsodAdapter(HOUSE_NEW_MEMBER_DEMS_CONFIG)),
+        ("csod_house_new_member_gop", CsodAdapter(HOUSE_NEW_MEMBER_GOP_CONFIG)),
         ("csod_uscp", CsodAdapter(USCP_CONFIG)),
         ("hvaps", HvapsEmailAdapter()),
     ]

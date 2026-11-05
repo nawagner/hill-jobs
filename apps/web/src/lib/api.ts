@@ -123,6 +123,8 @@ export function formatRoleKind(kind: string): string {
 const EMPLOYER_NAMES: Record<string, string> = {
   "senate-webscribble": "U.S. Senate",
   "csod-house-cao": "U.S. House of Representatives",
+  "csod-house-new-member-dems": "U.S. House of Representatives",
+  "csod-house-new-member-gop": "U.S. House of Representatives",
   "csod-uscp": "U.S. Capitol Police",
   "loc-careers": "Library of Congress",
   "aoc-usajobs": "Architect of the Capitol",

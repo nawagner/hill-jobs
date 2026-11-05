@@ -98,7 +98,7 @@ curl -X POST "https://beneficial-beauty-production.up.railway.app/api/internal/i
 | `UsajobsAdapter` (GAO) | `gao-usajobs` | USAJobs API (needs key) | Railway cron |
 | `UsajobsAdapter` (GPO) | `gpo-usajobs` | USAJobs API (needs key) | Railway cron |
 | `CboBizmerlinAdapter` | `cbo-bizmerlin` | REST API (cbo.clayhr.com, formerly BizMerlin) | Railway cron |
-| `CsodAdapter` | `csod-house-cao`, `csod-house-clerk`, `csod-house-saa`, `csod-house-green-gold`, `csod-uscp` | Playwright (Chromium) | Railway cron |
+| `CsodAdapter` | `csod-house-cao`, `csod-house-clerk`, `csod-house-saa`, `csod-house-green-gold`, `csod-house-new-member-dems`, `csod-house-new-member-gop`, `csod-uscp` | Playwright (Chromium) | Railway cron |
 | `HvapsEmailAdapter` | `house-hvaps` | Gmail IMAP → PDF parsing | Railway cron |
 | HVAPS endpoint | `house-hvaps` | PDF parsing (manual URL fallback) | Railway API |
 | `ManualAdapter` | `manual` | Hand-added entries in `apps/api/app/data/manual_jobs.py` | Railway cron |

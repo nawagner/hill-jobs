@@ -29,7 +29,7 @@ router = APIRouter(prefix="/api/internal")
 
 def build_registry(settings: Settings) -> dict[str, SourceAdapter]:
     # CSOD adapters (house-cao, house-clerk, house-saa, house-green-gold,
-    # uscp) require agent-browser and are run locally instead of on the server.
+    # house-new-member-dems, house-new-member-gop, uscp) require agent-browser and are run locally instead of on the server.
     registry: dict[str, SourceAdapter] = {
         # First, so an HVAPS or Domewatch copy of a manual listing is skipped.
         "manual": ManualAdapter(),

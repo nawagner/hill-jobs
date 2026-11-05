@@ -52,6 +52,8 @@ const CHAMBER_LABELS: Record<string, string> = {
 const SOURCE_TO_CHAMBER: Record<string, string> = {
   "senate-webscribble": "senate",
   "csod-house-cao": "house",
+  "csod-house-new-member-dems": "house",
+  "csod-house-new-member-gop": "house",
   "house-bulletin": "house",
   "house-dems-resumebank": "house",
   "csod-uscp": "legislative",

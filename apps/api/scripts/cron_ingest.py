@@ -25,6 +25,8 @@ from app.ingest.adapters.csod import (
     HOUSE_CAO_CONFIG,
     HOUSE_CLERK_CONFIG,
     HOUSE_GREEN_GOLD_CONFIG,
+    HOUSE_NEW_MEMBER_DEMS_CONFIG,
+    HOUSE_NEW_MEMBER_GOP_CONFIG,
     HOUSE_SAA_CONFIG,
     USCP_CONFIG,
 )
@@ -78,6 +80,8 @@ def build_registry(settings: Settings):
         HOUSE_CLERK_CONFIG,
         HOUSE_SAA_CONFIG,
         HOUSE_GREEN_GOLD_CONFIG,
+        HOUSE_NEW_MEMBER_DEMS_CONFIG,
+        HOUSE_NEW_MEMBER_GOP_CONFIG,
         USCP_CONFIG,
     ):
         registry[config.source_system] = CsodAdapter(config)

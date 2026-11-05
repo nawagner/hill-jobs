@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-05
+
+- Add the House New Member Resume Bank, which collects resumes for the offices of newly elected House Members ahead of the 120th Congress
+  - Its two CSOD career sites (Democrats, site 14; Republicans, site 16) are scraped daily like the other House sites, 14 roles each (Chief of Staff, Legislative Director, Caseworker, and so on)
+  - Listed as "House Democratic Members-Elect" and "House Republican Members-Elect", so the party filter finds them
+
 ## 2026-10-20
 
 - Add a `manual` source for jobs no adapter reads, kept in `apps/api/app/data/manual_jobs.py` and synced by the daily ingest like any other source
