@@ -26,6 +26,7 @@ class Member:
 
 
 _SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
+_HONORIFICS = {"reverend", "rev", "dr", "doctor", "hon", "honorable", "the", "mr", "mrs", "ms"}
 
 # Common English diminutives, used only to pick between members who share a
 # chamber and last name. Each maps to the formal names it can stand for.
@@ -182,6 +183,8 @@ def find_member(source_organization: str | None) -> Member | None:
     rest = rest.split(",")[0]
     rest = re.sub(r"\([^)]*\)", " ", rest)  # "(CA-10)"
     tokens = _tokens(rest)
+    while tokens and tokens[0] in _HONORIFICS:  # "Senator Reverend Raphael Warnock"
+        tokens = tokens[1:]
     if len(tokens) < 2:
         return None
 

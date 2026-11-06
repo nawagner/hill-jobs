@@ -40,6 +40,7 @@ from app.data.members import employer_party, find_member
         ("Rep. Greg Steube", "Rep. W. Gregory Steube"),
         ("U.S. Senator Andy Kim", "Senator Andy Kim"),
         ("Rep Jim Clyburn", "Rep. James E. Clyburn"),
+        ("Senator Reverend Raphael Warnock", "Senator Raphael G. Warnock"),
     ],
 )
 def test_find_member_variants(source_organization, expected):
