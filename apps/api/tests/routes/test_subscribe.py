@@ -64,3 +64,16 @@ def test_malformed_date_posted_choice_is_a_validation_error(test_client, db_sess
     )
 
     assert res.status_code == 422
+
+
+def test_member_saved_as_organization_moves_to_member():
+    from app.schemas.subscribers import upgrade_legacy_filters
+
+    assert upgrade_legacy_filters({"organization": "Senator Chris Coons", "party": "D"}) == {
+        "member": "Senator Christopher A. Coons", "party": "D",
+    }
+    assert upgrade_legacy_filters({"organization": "U.S. Senate"}) == {"organization": "U.S. Senate"}
+    # A single non-member office keeps its exact filter
+    assert upgrade_legacy_filters({"organization": "Clerk of the House"}) == {
+        "organization": "Clerk of the House",
+    }

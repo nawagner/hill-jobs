@@ -2,6 +2,11 @@
 
 ## 2026-11-06
 
+- Group the Organization filter into nine top-level organizations (U.S. Senate, U.S. House of Representatives, Architect of the Capitol, CBO, GAO, GPO, Library of Congress, U.S. Capitol Police, Congressional Commissions) instead of every office name a source uses
+  - Support offices (Clerk, CAO, Sergeant at Arms, Secretary of the Senate) and committee staff belong to their chamber; jobs show the organization with the office beneath it
+  - Members get their own `member` filter, so spelling variants of one member's office are one choice, grouped into senators and representatives
+  - The Committee filter now includes the committee's own staff jobs ("Finance - Democrats", "House Armed Services Committee"), not just jobs in its members' offices
+  - Alert subscriptions that saved a member as their organization move to the member filter; old links and alerts naming a single office still match it exactly
 - Fix the party, state and committee filters missing member offices whose names didn't exactly match the lookup table; 20 open jobs had no party, about 12% of Democratic listings
   - The member table is now generated from unitedstates/congress-legislators by `apps/api/scripts/generate_member_data.py`. The old one filed about 100 senators under "Rep.", so "Senator Andy Kim" or "Senator Christopher A. Coons" never matched, and it was missing members who joined since (Rep. Analilia Mejia)
   - Member names are matched by chamber, last name and first name, ignoring accents, middle initials, suffixes and nicknames ("Rep. Emanuel Cleaver, II", "Senator Dick Durbin", "Senator Richard Blumenthal, Senate Judiciary Committee")

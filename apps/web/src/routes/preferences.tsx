@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router";
-import type { OrganizationItem, StateItem, CommitteeItem } from "../lib/api";
+import type { MemberItem, OrganizationItem, StateItem, CommitteeItem } from "../lib/api";
 import {
   getOrganizations,
+  getMembers,
   getRoleKinds,
   getStates,
   getCommittees,
@@ -42,6 +43,7 @@ export function Preferences() {
   const [email, setEmail] = useState("");
   const [roleKind, setRoleKind] = useState("");
   const [organization, setOrganization] = useState("");
+  const [member, setMember] = useState("");
   const [party, setParty] = useState("");
   const [state, setState] = useState("");
   const [committee, setCommittee] = useState("");
@@ -50,6 +52,7 @@ export function Preferences() {
   const [salary, setSalary] = useState("");
 
   const [organizations, setOrganizations] = useState<OrganizationItem[]>([]);
+  const [members, setMembers] = useState<MemberItem[]>([]);
   const [roleKinds, setRoleKinds] = useState<string[]>([]);
   const [states, setStates] = useState<StateItem[]>([]);
   const [committees, setCommittees] = useState<CommitteeItem[]>([]);
@@ -64,11 +67,12 @@ export function Preferences() {
     Promise.all([
       getPreferences(token),
       getOrganizations(),
+      getMembers(),
       getRoleKinds(),
       getStates(),
       getCommittees(),
     ])
-      .then(([prefs, orgs, kinds, sts, cmts]) => {
+      .then(([prefs, orgs, mems, kinds, sts, cmts]) => {
         setEmail(prefs.email);
         const f = prefs.filters || {};
         const { committee, subcommittee } = resolveCommitteeSelection(
@@ -77,6 +81,7 @@ export function Preferences() {
         );
         setRoleKind(f.role_kind || "");
         setOrganization(f.organization || "");
+        setMember(f.member || "");
         setParty(f.party || "");
         setState(f.state || "");
         setCommittee(committee);
@@ -84,6 +89,7 @@ export function Preferences() {
         setFreshness(f.freshness || "");
         setSalary(f.salary_min || "");
         setOrganizations(orgs);
+        setMembers(mems);
         setRoleKinds(kinds);
         setStates(sts);
         setCommittees(cmts);
@@ -105,6 +111,7 @@ export function Preferences() {
     const filters: Record<string, string> = {};
     if (roleKind) filters.role_kind = roleKind;
     if (organization) filters.organization = organization;
+    if (member) filters.member = member;
     if (party) filters.party = party;
     if (state) filters.state = state;
     const effectiveCommittee = subcommittee || committee;
@@ -173,10 +180,12 @@ export function Preferences() {
           <Filters
             roleKinds={roleKinds}
             organizations={organizations}
+            members={members}
             states={states}
             committees={committees}
             selectedRoleKind={roleKind}
             selectedOrganization={organization}
+            selectedMember={member}
             selectedParty={party}
             selectedState={state}
             selectedCommittee={committee}
@@ -185,6 +194,7 @@ export function Preferences() {
             selectedSalary={salary}
             onRoleKindChange={setRoleKind}
             onOrganizationChange={setOrganization}
+            onMemberChange={setMember}
             onPartyChange={setParty}
             onStateChange={setState}
             onCommitteeChange={handleCommitteeChange}

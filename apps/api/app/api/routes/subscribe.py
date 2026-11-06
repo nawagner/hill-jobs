@@ -11,6 +11,7 @@ from app.lib.email import send_email
 from app.lib.email_templates import build_confirmation_html
 from app.models.subscribers import Subscriber
 from app.schemas.subscribers import (
+    upgrade_legacy_filters,
     PreferencesResponse,
     PreferencesUpdateRequest,
     SubscribeRequest,
@@ -82,7 +83,7 @@ def get_preferences(token: str, db: Session = Depends(get_db)):
     ).scalar_one_or_none()
     if not sub:
         raise HTTPException(status_code=404, detail="Invalid token.")
-    return PreferencesResponse(email=sub.email, filters=sub.filters)
+    return PreferencesResponse(email=sub.email, filters=upgrade_legacy_filters(sub.filters))
 
 
 @router.put("/preferences/{token}", response_model=SubscribeResponse)

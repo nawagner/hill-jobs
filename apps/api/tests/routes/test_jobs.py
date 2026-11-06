@@ -129,16 +129,9 @@ def test_list_organizations(test_client, db_session):
     _seed_jobs(db_session)
     resp = test_client.get("/api/organizations")
     assert resp.status_code == 200
-    orgs = resp.json()
-    org_names = [o["name"] for o in orgs]
-    assert "Library of Congress" in org_names
-    assert "Senate IT" in org_names
-    # Closed job org should still appear if other open jobs share it
-    assert len(orgs) == 3
-    # Each org includes source_system and party
-    for o in orgs:
-        assert "source_system" in o
-        assert "party" in o
+    # Top-level organizations only, in the filter's order; Senate IT and
+    # Senate Press are both the U.S. Senate.
+    assert resp.json() == [{"name": "U.S. Senate"}, {"name": "Library of Congress"}]
 
 
 def _seed_jobs_with_salaries(db_session):
@@ -434,8 +427,45 @@ def test_state_and_committee_filters_match_senators(test_client, db_session):
     _seed_party_signal_jobs(db_session)
     nj = {i["slug"] for i in test_client.get("/api/jobs", params={"state": "NJ"}).json()["items"]}
     assert "kim-sa" in nj
-    orgs = {o["name"]: o for o in test_client.get("/api/organizations").json()}
-    assert orgs["Senator Andy Kim"]["party"] == "D"
-    assert orgs["Senator Andy Kim"]["committees"]
-    assert orgs["House Armed Services Committee"]["party"] == "D"
-    assert orgs["Secretary of the Senate"]["party"] is None
+    members = {m["name"]: m for m in test_client.get("/api/members").json()}
+    assert members["Senator Andy Kim"] == {
+        "name": "Senator Andy Kim", "chamber": "senate", "party": "D", "state": "NJ",
+    }
+    # Spelling variants collapse to one canonical member
+    assert "Rep. Emanuel Cleaver" in members
+    assert "Rep. Emanuel Cleaver, II" not in members
+    assert "Finance - Democrats" not in members
+
+
+def _slugs(test_client, **params):
+    return {i["slug"] for i in test_client.get("/api/jobs", params=params).json()["items"]}
+
+
+def test_organization_filter_groups_offices(test_client, db_session):
+    _seed_party_signal_jobs(db_session)
+    assert _slugs(test_client, organization="U.S. Senate") == {
+        "kim-sa", "finance-dem", "foreign-gop", "sec-senate",
+    }
+    assert _slugs(test_client, organization="U.S. House of Representatives") == {
+        "hasc-dem", "cleaver-la", "young-kim-la",
+    }
+    # Old links naming a single office still work
+    assert _slugs(test_client, organization="Secretary of the Senate") == {"sec-senate"}
+    jobs = test_client.get("/api/jobs").json()["items"]
+    assert {j["slug"]: j["organization"] for j in jobs}["finance-dem"] == "U.S. Senate"
+
+
+def test_member_filter_matches_name_variants(test_client, db_session):
+    _seed_party_signal_jobs(db_session)
+    assert _slugs(test_client, member="Rep. Emanuel Cleaver") == {"cleaver-la"}
+    assert _slugs(test_client, member="Senator Andy Kim") == {"kim-sa"}
+
+
+def test_committee_filter_includes_committee_staff(test_client, db_session):
+    _seed_party_signal_jobs(db_session)
+    # Finance staff plus offices of senators on Finance (Andy Kim isn't)
+    finance = _slugs(test_client, committee="SSFI")
+    assert "finance-dem" in finance
+    assert "foreign-gop" not in finance
+    armed_services = _slugs(test_client, committee="HSAS")
+    assert "hasc-dem" in armed_services

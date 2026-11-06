@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from app.categorization.role_kinds import ROLE_KINDS
 from app.data.member_committees import COMMITTEES
 from app.data.member_data import MEMBERS
-from app.data.members import employer_party, find_member
+from app.data.members import find_member
+from app.data.organizations import TOP_ORGANIZATIONS, employer_organization
 from app.db import get_db
 from app.models.jobs import Job
 from app.schemas.jobs import (
@@ -13,6 +14,7 @@ from app.schemas.jobs import (
     JobDetail,
     JobListItem,
     JobSearchResponse,
+    MemberItem,
     OrganizationItem,
     StateItem,
 )
@@ -67,6 +69,7 @@ def list_jobs(
     q: str | None = None,
     role_kind: str | None = None,
     organization: str | None = None,
+    member: str | None = None,
     status: str | None = None,
     posted_since_days: int | None = None,
     posted_before_days: int | None = None,
@@ -82,6 +85,7 @@ def list_jobs(
         q=q,
         role_kind=role_kind,
         organization=organization,
+        member=member,
         status=status,
         posted_since_days=posted_since_days,
         posted_before_days=posted_before_days,
@@ -94,6 +98,7 @@ def list_jobs(
     job_items = []
     for j in items:
         item = JobListItem.model_validate(j, from_attributes=True)
+        item.organization = employer_organization(j.source_system, j.source_organization)
         item.member_committees = _get_member_committee_names(j.source_organization)
         job_items.append(item)
     return JobSearchResponse(
@@ -109,35 +114,43 @@ def get_job(slug: str, db: Session = Depends(get_db)):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     detail = JobDetail.model_validate(job, from_attributes=True)
+    detail.organization = employer_organization(job.source_system, job.source_organization)
     detail.member_committees = _get_member_committee_names(job.source_organization)
     return detail
 
 
-@router.get("/organizations")
-def list_organizations(db: Session = Depends(get_db)) -> list[OrganizationItem]:
+def _open_employers(db: Session) -> list[tuple[str, str]]:
     stmt = (
-        select(Job.source_organization, Job.source_system)
+        select(Job.source_system, Job.source_organization)
         .where(Job.status != "closed")
         .distinct()
-        .order_by(Job.source_organization, Job.source_system)
     )
-    rows = db.execute(stmt).all()
+    return [(system, org) for system, org in db.execute(stmt).all()]
 
-    seen: set[str] = set()
-    result: list[OrganizationItem] = []
-    for name, system in rows:
-        if name in seen:
-            continue
-        seen.add(name)
-        member = find_member(name)
-        result.append(OrganizationItem(
-            name=name,
-            source_system=None,
-            party=employer_party(system, name),
-            state=member.state if member else None,
-            committees=list(member.committees) if member else None,
-        ))
-    return result
+
+@router.get("/organizations", response_model=list[OrganizationItem])
+def list_organizations(db: Session = Depends(get_db)) -> list[OrganizationItem]:
+    """Top-level organizations with open jobs, e.g. "U.S. Senate", "Library of Congress"."""
+    present = {employer_organization(system, org) for system, org in _open_employers(db)}
+    return [OrganizationItem(name=name) for name in TOP_ORGANIZATIONS if name in present]
+
+
+@router.get("/members", response_model=list[MemberItem])
+def list_members(db: Session = Depends(get_db)) -> list[MemberItem]:
+    """Members of Congress whose offices have open jobs, senators first."""
+    members = {}
+    for _, org in _open_employers(db):
+        m = find_member(org)
+        if m:
+            members[m.id] = m
+    ordered = sorted(
+        members.values(),
+        key=lambda m: (m.chamber != "senate", m.name.split(" ", 1)[1]),
+    )
+    return [
+        MemberItem(name=m.name, chamber=m.chamber, party=m.party, state=m.state)
+        for m in ordered
+    ]
 
 
 @router.get("/role-kinds")

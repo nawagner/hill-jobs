@@ -64,9 +64,11 @@ For JavaScript-rendered career sites (e.g., CSOD/csodfed.com), use the `agent-br
 ## API Endpoints
 
 Public:
-- `GET /api/jobs?q=&role_kind=&organization=&status=&posted_since_days=&page=`
+- `GET /api/jobs?q=&role_kind=&organization=&member=&party=&state=&committee=&status=&posted_since_days=&page=`
+  - `organization` is a top-level organization ("U.S. Senate", "Library of Congress"; see `TOP_ORGANIZATIONS` in `apps/api/app/data/organizations.py`). Members and committees have their own filters; `committee` matches the committee's own staff and its members' offices
 - `GET /api/jobs/{slug}`
-- `GET /api/organizations`
+- `GET /api/organizations` — top-level organizations with open jobs
+- `GET /api/members` — members of Congress with open jobs (canonical name, chamber, party, state)
 - `GET /api/role-kinds`
 
 Protected (requires `x-internal-token` header):

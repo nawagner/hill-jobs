@@ -33,6 +33,7 @@ from app.db import get_engine
 from app.lib.email import send_email
 from app.lib.email_templates import NEW_JOBS_INTRO, build_digest_html
 from app.models.subscribers import Subscriber
+from app.schemas.subscribers import upgrade_legacy_filters
 from app.search.query_jobs import query_jobs
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -86,7 +87,7 @@ def send_digests(
             result.skipped += 1
             continue
 
-        filters = sub.filters or {}
+        filters = upgrade_legacy_filters(sub.filters)
         search = _search_kwargs(filters)
         date_range = _date_range(filters)
 
@@ -207,6 +208,7 @@ def _search_kwargs(filters: dict) -> dict:
         "q": filters.get("q") or None,
         "role_kind": filters.get("role_kind") or None,
         "organization": filters.get("organization") or None,
+        "member": filters.get("member") or None,
         "party": filters.get("party") or None,
         "state": filters.get("state") or None,
         "committee": filters.get("committee") or None,
@@ -219,7 +221,7 @@ def _site_search_params(filters: dict) -> dict[str, str]:
     """A subscriber's filters as the site's search URL parameters."""
     params = {
         key: str(filters[key])
-        for key in ("q", "role_kind", "organization", "party", "state")
+        for key in ("q", "role_kind", "organization", "member", "party", "state")
         if filters.get(key)
     }
     committee = filters.get("committee")
