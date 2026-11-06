@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.data.member_committees import COMMITTEES
 from app.data.members import employer_party, find_member
+from app.data.organizations import TOP_ORGANIZATIONS, employer_organization, staff_committee
 from app.models.jobs import Job
 
 
@@ -38,6 +39,7 @@ def query_jobs(
     q: str | None = None,
     role_kind: str | None = None,
     organization: str | None = None,
+    member: str | None = None,
     status: str | None = None,
     posted_since_days: int | None = None,
     posted_before_days: int | None = None,
@@ -62,8 +64,28 @@ def query_jobs(
     if role_kind:
         stmt = stmt.where(Job.role_kind == role_kind)
 
-    if organization:
+    if organization in TOP_ORGANIZATIONS:
+        stmt = stmt.where(
+            _employer_condition(
+                session, lambda system, org: employer_organization(system, org) == organization
+            )
+        )
+    elif organization:
+        # Links and alert subscriptions from before organizations were grouped
+        # name a single office ("Clerk of the House").
         stmt = stmt.where(Job.source_organization == organization)
+
+    if member:
+        wanted = find_member(member)
+        if wanted:
+            stmt = stmt.where(
+                _employer_condition(
+                    session,
+                    lambda system, org: (m := find_member(org)) is not None and m.id == wanted.id,
+                )
+            )
+        else:
+            stmt = stmt.where(Job.source_organization == member)
 
     # HVAPS and CSOD listings have no posting date; date them by when we first
     # saw them, or every date filter (and the newsletter) would hide them.
@@ -112,11 +134,15 @@ def query_jobs(
         for cid, meta in COMMITTEES.items():
             if meta.get("parent") == committee:
                 committee_ids.add(cid)
+        # The committee's own staff, plus the offices of members who sit on it.
         stmt = stmt.where(
             _employer_condition(
                 session,
-                lambda system, org: (m := find_member(org)) is not None
-                and bool(committee_ids & set(m.committees)),
+                lambda system, org: staff_committee(system, org) in committee_ids
+                or (
+                    (m := find_member(org)) is not None
+                    and bool(committee_ids & set(m.committees))
+                ),
             )
         )
 

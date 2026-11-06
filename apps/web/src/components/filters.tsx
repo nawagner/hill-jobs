@@ -1,14 +1,17 @@
 import { useMemo } from "react";
 import { formatRoleKind } from "../lib/api";
-import type { OrganizationItem, StateItem, CommitteeItem } from "../lib/api";
+import type { MemberItem, OrganizationItem, StateItem, CommitteeItem } from "../lib/api";
 
 interface FiltersProps {
   roleKinds: string[];
+  /** Top-level organizations ("U.S. Senate", "Library of Congress"). */
   organizations: OrganizationItem[];
+  members: MemberItem[];
   states: StateItem[];
   committees: CommitteeItem[];
   selectedRoleKind: string;
   selectedOrganization: string;
+  selectedMember: string;
   selectedParty: string;
   selectedState: string;
   selectedCommittee: string;
@@ -17,6 +20,7 @@ interface FiltersProps {
   selectedSalary: string;
   onRoleKindChange: (value: string) => void;
   onOrganizationChange: (value: string) => void;
+  onMemberChange: (value: string) => void;
   onPartyChange: (value: string) => void;
   onStateChange: (value: string) => void;
   onCommitteeChange: (value: string) => void;
@@ -43,33 +47,15 @@ const freshnessOptions = [
   { label: "Older than 30 days", value: "older_30" },
 ];
 
-const CHAMBER_LABELS: Record<string, string> = {
-  senate: "Senate",
-  house: "House",
-  legislative: "Legislative Branch",
-};
-
-const SOURCE_TO_CHAMBER: Record<string, string> = {
-  "senate-webscribble": "senate",
-  "csod-house-cao": "house",
-  "house-bulletin": "house",
-  "house-dems-resumebank": "house",
-  "csod-uscp": "legislative",
-  "loc-careers": "legislative",
-  "aoc-usajobs": "legislative",
-};
-
-function stripPartySuffix(name: string): string {
-  return name.replace(/ - (Democrats|Republicans|Non-designated)$/, "");
-}
-
 export function Filters({
   roleKinds,
   organizations,
+  members,
   states,
   committees,
   selectedRoleKind,
   selectedOrganization,
+  selectedMember,
   selectedParty,
   selectedState,
   selectedCommittee,
@@ -78,6 +64,7 @@ export function Filters({
   selectedSalary,
   onRoleKindChange,
   onOrganizationChange,
+  onMemberChange,
   onPartyChange,
   onStateChange,
   onCommitteeChange,
@@ -86,25 +73,20 @@ export function Filters({
   onSalaryChange,
   showOlderThan30 = true,
 }: FiltersProps) {
-  const { officeGroups, members } = useMemo(() => {
-    const mems: OrganizationItem[] = [];
-    const grouped: Record<string, OrganizationItem[]> = {
-      senate: [],
-      house: [],
-      legislative: [],
-    };
+  const { senators, representatives } = useMemo(
+    () => ({
+      senators: members.filter((m) => m.chamber === "senate"),
+      representatives: members.filter((m) => m.chamber === "house"),
+    }),
+    [members],
+  );
 
-    for (const org of organizations) {
-      if (org.name.startsWith("Senator ") || org.name.startsWith("Rep. ") || org.name === "Confidential") {
-        mems.push(org);
-      } else {
-        const chamber = SOURCE_TO_CHAMBER[org.source_system] || "legislative";
-        grouped[chamber].push(org);
-      }
-    }
-
-    return { officeGroups: grouped, members: mems };
-  }, [organizations]);
+  // A saved alert or old link can name a single office ("Clerk of the House")
+  // from before organizations were grouped; keep it visible so it can be cleared.
+  const legacyOrganization =
+    selectedOrganization && !organizations.some((o) => o.name === selectedOrganization)
+      ? selectedOrganization
+      : "";
 
   const { senateCommittees, houseCommittees, jointCommittees } = useMemo(() => {
     const senate: CommitteeItem[] = [];
@@ -123,15 +105,8 @@ export function Filters({
     return committees.find((c) => c.id === selectedCommittee) ?? null;
   }, [committees, selectedCommittee]);
 
-  const isMemberSelected =
-    selectedOrganization.startsWith("Senator ") ||
-    selectedOrganization.startsWith("Rep. ") ||
-    selectedOrganization === "Confidential";
-
   const selectClasses =
     "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-body text-slate-700 focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/30";
-
-  const chamberOrder = ["senate", "house", "legislative"] as const;
 
   return (
     <div className="flex flex-wrap gap-3" role="group" aria-label="Filters">
@@ -151,43 +126,42 @@ export function Filters({
 
       <select
         aria-label="Organization"
-        value={isMemberSelected ? "" : selectedOrganization}
+        value={selectedOrganization}
         onChange={(e) => onOrganizationChange(e.target.value)}
         className={selectClasses}
       >
         <option value="">All organizations</option>
-        {chamberOrder.map((chamber) => {
-          const orgs = officeGroups[chamber];
-          if (orgs.length === 0) return null;
-          return (
-            <optgroup key={chamber} label={CHAMBER_LABELS[chamber]}>
-              {orgs.map((org) => (
-                <option key={org.name} value={org.name}>
-                  {stripPartySuffix(org.name)}
-                </option>
-              ))}
-            </optgroup>
-          );
-        })}
+        {organizations.map((org) => (
+          <option key={org.name} value={org.name}>
+            {org.name}
+          </option>
+        ))}
+        {legacyOrganization && <option value={legacyOrganization}>{legacyOrganization}</option>}
       </select>
 
       {members.length > 0 && (
         <select
           aria-label="Member"
-          value={isMemberSelected ? selectedOrganization : ""}
-          onChange={(e) => onOrganizationChange(e.target.value)}
+          value={selectedMember}
+          onChange={(e) => onMemberChange(e.target.value)}
           className={selectClasses}
         >
           <option value="">All members</option>
-          {members.map((mem) => {
-            const displayName = mem.name.replace(/^(Senator |Rep\. )/, "");
-            const partyLabel = mem.party ? ` (${mem.party})` : "";
-            return (
-              <option key={mem.name} value={mem.name}>
-                {displayName}{partyLabel}
-              </option>
-            );
-          })}
+          {[
+            { label: "Senators", items: senators },
+            { label: "Representatives", items: representatives },
+          ].map(
+            (group) =>
+              group.items.length > 0 && (
+                <optgroup key={group.label} label={group.label}>
+                  {group.items.map((mem) => (
+                    <option key={mem.name} value={mem.name}>
+                      {mem.name.replace(/^(Senator |Rep\. )/, "")} ({mem.party}-{mem.state})
+                    </option>
+                  ))}
+                </optgroup>
+              ),
+          )}
         </select>
       )}
 

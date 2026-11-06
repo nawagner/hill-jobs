@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
-import type { OrganizationItem, StateItem, CommitteeItem } from "../lib/api";
-import { getOrganizations, getRoleKinds, getStates, getCommittees, subscribe } from "../lib/api";
+import type { MemberItem, OrganizationItem, StateItem, CommitteeItem } from "../lib/api";
+import { getOrganizations, getMembers, getRoleKinds, getStates, getCommittees, subscribe } from "../lib/api";
 import { Filters } from "../components/filters";
 
 export function Subscribe() {
   const [email, setEmail] = useState("");
   const [roleKind, setRoleKind] = useState("");
   const [organization, setOrganization] = useState("");
+  const [member, setMember] = useState("");
   const [party, setParty] = useState("");
   const [state, setState] = useState("");
   const [committee, setCommittee] = useState("");
@@ -15,6 +16,7 @@ export function Subscribe() {
   const [salary, setSalary] = useState("");
 
   const [organizations, setOrganizations] = useState<OrganizationItem[]>([]);
+  const [members, setMembers] = useState<MemberItem[]>([]);
   const [roleKinds, setRoleKinds] = useState<string[]>([]);
   const [states, setStates] = useState<StateItem[]>([]);
   const [committees, setCommittees] = useState<CommitteeItem[]>([]);
@@ -25,9 +27,10 @@ export function Subscribe() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([getOrganizations(), getRoleKinds(), getStates(), getCommittees()])
-      .then(([orgs, kinds, sts, cmts]) => {
+    Promise.all([getOrganizations(), getMembers(), getRoleKinds(), getStates(), getCommittees()])
+      .then(([orgs, mems, kinds, sts, cmts]) => {
         setOrganizations(orgs);
+        setMembers(mems);
         setRoleKinds(kinds);
         setStates(sts);
         setCommittees(cmts);
@@ -48,6 +51,7 @@ export function Subscribe() {
     const filters: Record<string, string> = {};
     if (roleKind) filters.role_kind = roleKind;
     if (organization) filters.organization = organization;
+    if (member) filters.member = member;
     if (party) filters.party = party;
     if (state) filters.state = state;
     const effectiveCommittee = subcommittee || committee;
@@ -127,10 +131,12 @@ export function Subscribe() {
           <Filters
             roleKinds={roleKinds}
             organizations={organizations}
+            members={members}
             states={states}
             committees={committees}
             selectedRoleKind={roleKind}
             selectedOrganization={organization}
+            selectedMember={member}
             selectedParty={party}
             selectedState={state}
             selectedCommittee={committee}
@@ -139,6 +145,7 @@ export function Subscribe() {
             selectedSalary={salary}
             onRoleKindChange={setRoleKind}
             onOrganizationChange={setOrganization}
+            onMemberChange={setMember}
             onPartyChange={setParty}
             onStateChange={setState}
             onCommitteeChange={handleCommitteeChange}

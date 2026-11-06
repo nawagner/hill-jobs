@@ -8,6 +8,7 @@ class JobListItem(BaseModel):
     title: str
     source_system: str
     source_organization: str
+    organization: str | None = None
     source_url: str
     status: str
     role_kind: str
@@ -29,10 +30,13 @@ class JobDetail(JobListItem):
 
 class OrganizationItem(BaseModel):
     name: str
-    source_system: str | None = None
-    party: str | None = None
-    state: str | None = None
-    committees: list[str] | None = None
+
+
+class MemberItem(BaseModel):
+    name: str
+    chamber: str
+    party: str
+    state: str
 
 
 class StateItem(BaseModel):

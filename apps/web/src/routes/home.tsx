@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import type { JobSearchResponse, OrganizationItem, StateItem, CommitteeItem } from "../lib/api";
-import { searchJobs, getOrganizations, getRoleKinds, getStates, getCommittees } from "../lib/api";
+import type { JobSearchResponse, MemberItem, OrganizationItem, StateItem, CommitteeItem } from "../lib/api";
+import { searchJobs, getOrganizations, getMembers, getRoleKinds, getStates, getCommittees } from "../lib/api";
 import { SearchForm } from "../components/search-form";
 import { Filters } from "../components/filters";
 import { JobCard } from "../components/job-card";
@@ -12,6 +12,7 @@ export function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [results, setResults] = useState<JobSearchResponse | null>(null);
   const [organizations, setOrganizations] = useState<OrganizationItem[]>([]);
+  const [members, setMembers] = useState<MemberItem[]>([]);
   const [roleKinds, setRoleKinds] = useState<string[]>([]);
   const [states, setStates] = useState<StateItem[]>([]);
   const [committees, setCommittees] = useState<CommitteeItem[]>([]);
@@ -21,6 +22,7 @@ export function Home() {
   const q = searchParams.get("q") || "";
   const roleKind = searchParams.get("role_kind") || "";
   const organization = searchParams.get("organization") || "";
+  const member = searchParams.get("member") || "";
   const party = searchParams.get("party") || "";
   const state = searchParams.get("state") || "";
   const committee = searchParams.get("committee") || "";
@@ -65,9 +67,10 @@ export function Home() {
   const effectiveCommittee = subcommittee || committee;
 
   useEffect(() => {
-    Promise.all([getOrganizations(), getRoleKinds(), getStates(), getCommittees()])
-      .then(([orgs, kinds, sts, cmts]) => {
+    Promise.all([getOrganizations(), getMembers(), getRoleKinds(), getStates(), getCommittees()])
+      .then(([orgs, mems, kinds, sts, cmts]) => {
         setOrganizations(orgs);
+        setMembers(mems);
         setRoleKinds(kinds);
         setStates(sts);
         setCommittees(cmts);
@@ -82,6 +85,7 @@ export function Home() {
       q: q || undefined,
       role_kind: roleKind || undefined,
       organization: organization || undefined,
+      member: member || undefined,
       party: party || undefined,
       state: state || undefined,
       committee: effectiveCommittee || undefined,
@@ -93,7 +97,7 @@ export function Home() {
       .then(setResults)
       .catch(() => setError("Unable to load jobs. Please try again."))
       .finally(() => setLoading(false));
-  }, [q, roleKind, organization, party, state, effectiveCommittee, freshness, salary, page]);
+  }, [q, roleKind, organization, member, party, state, effectiveCommittee, freshness, salary, page]);
 
   return (
     <>
@@ -126,10 +130,12 @@ export function Home() {
           <Filters
             roleKinds={roleKinds}
             organizations={organizations}
+            members={members}
             states={states}
             committees={committees}
             selectedRoleKind={roleKind}
             selectedOrganization={organization}
+            selectedMember={member}
             selectedParty={party}
             selectedState={state}
             selectedCommittee={committee}
@@ -138,6 +144,7 @@ export function Home() {
             selectedSalary={salary}
             onRoleKindChange={(v) => updateParam("role_kind", v)}
             onOrganizationChange={(v) => updateParam("organization", v)}
+            onMemberChange={(v) => updateParam("member", v)}
             onPartyChange={(v) => updateParam("party", v)}
             onStateChange={(v) => updateParam("state", v)}
             onCommitteeChange={handleCommitteeChange}

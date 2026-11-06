@@ -3,6 +3,8 @@ export interface JobListItem {
   title: string;
   source_system: string;
   source_organization: string;
+  /** Top-level organization, e.g. "U.S. Senate"; null when unknown. */
+  organization?: string | null;
   source_url: string;
   status: "open" | "closed" | "unknown";
   role_kind: string;
@@ -33,6 +35,7 @@ export interface SearchParams {
   q?: string;
   role_kind?: string;
   organization?: string;
+  member?: string;
   party?: string;
   state?: string;
   committee?: string;
@@ -47,6 +50,7 @@ export async function searchJobs(params: SearchParams): Promise<JobSearchRespons
   if (params.q) query.set("q", params.q);
   if (params.role_kind) query.set("role_kind", params.role_kind);
   if (params.organization) query.set("organization", params.organization);
+  if (params.member) query.set("member", params.member);
   if (params.party) query.set("party", params.party);
   if (params.state) query.set("state", params.state);
   if (params.committee) query.set("committee", params.committee);
@@ -66,12 +70,18 @@ export async function getJob(slug: string): Promise<JobDetail> {
   return res.json();
 }
 
+/** A top-level organization, e.g. "U.S. Senate" or "Library of Congress". */
 export interface OrganizationItem {
   name: string;
-  source_system: string;
-  party: string | null;
-  state: string | null;
-  committees: string[] | null;
+}
+
+/** A member of Congress whose office has open jobs. */
+export interface MemberItem {
+  /** Canonical name, e.g. "Senator Andy Kim" or "Rep. Norma J. Torres". */
+  name: string;
+  chamber: "senate" | "house";
+  party: string;
+  state: string;
 }
 
 export interface StateItem {
@@ -90,6 +100,16 @@ export async function getOrganizations(): Promise<OrganizationItem[]> {
   const res = await fetch("/api/organizations");
   if (!res.ok) throw new Error(`Failed to load organizations: ${res.status}`);
   return res.json();
+}
+
+/** Members with open jobs; an empty list if they can't be loaded, so the other filters still work. */
+export async function getMembers(): Promise<MemberItem[]> {
+  try {
+    const res = await fetch("/api/members");
+    return res.ok ? await res.json() : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getRoleKinds(): Promise<string[]> {
@@ -146,8 +166,10 @@ export function formatSalary(job: Pick<JobListItem, "salary_min" | "salary_max" 
   return `${fmt(value)} ${period}`;
 }
 
-export function getEmployerDisplay(job: Pick<JobListItem, "source_system" | "source_organization">) {
-  const employer = EMPLOYER_NAMES[job.source_system] || job.source_organization;
+export function getEmployerDisplay(
+  job: Pick<JobListItem, "source_system" | "source_organization" | "organization">,
+) {
+  const employer = job.organization || EMPLOYER_NAMES[job.source_system] || job.source_organization;
   const office = employer !== job.source_organization ? job.source_organization : null;
   return { employer, office };
 }
@@ -158,6 +180,7 @@ export interface SubscribeFilters {
   q?: string;
   role_kind?: string;
   organization?: string;
+  member?: string;
   party?: string;
   state?: string;
   committee?: string;
