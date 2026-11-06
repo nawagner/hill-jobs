@@ -1,9 +1,35 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, false, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.data.member_committees import COMMITTEES
+from app.data.members import employer_party, find_member
 from app.models.jobs import Job
+
+
+def _employer_condition(session: Session, keep: Callable[[str, str], bool]):
+    """SQL condition matching jobs whose (source_system, source_organization) passes keep.
+
+    Party, state and committee come from matching employer names in Python
+    (spellings vary by source), so this checks each distinct employer once.
+    """
+    pairs = session.execute(
+        select(Job.source_system, Job.source_organization).distinct()
+    ).all()
+    by_system: dict[str, list[str]] = {}
+    for system, org in pairs:
+        if keep(system, org):
+            by_system.setdefault(system, []).append(org)
+    if not by_system:
+        return false()
+    return or_(
+        *(
+            and_(Job.source_system == system, Job.source_organization.in_(orgs))
+            for system, orgs in by_system.items()
+        )
+    )
 
 
 def query_jobs(
@@ -67,32 +93,32 @@ def query_jobs(
             stmt = stmt.where(Job.salary_min >= salary_min)
 
     if party:
-        from app.data.member_parties import MEMBER_PARTIES
-        matching = [name for name, p in MEMBER_PARTIES.items() if p == party]
-        if matching:
-            stmt = stmt.where(Job.source_organization.in_(matching))
-        else:
-            stmt = stmt.where(False)
+        stmt = stmt.where(
+            _employer_condition(
+                session, lambda system, org: employer_party(system, org) == party
+            )
+        )
 
     if state:
-        from app.data.member_states import MEMBER_STATES
-        matching = [name for name, s in MEMBER_STATES.items() if s == state]
-        if matching:
-            stmt = stmt.where(Job.source_organization.in_(matching))
-        else:
-            stmt = stmt.where(False)
+        stmt = stmt.where(
+            _employer_condition(
+                session,
+                lambda system, org: (m := find_member(org)) is not None and m.state == state,
+            )
+        )
 
     if committee:
-        from app.data.member_committees import COMMITTEES, MEMBER_COMMITTEES
         committee_ids = {committee}
         for cid, meta in COMMITTEES.items():
             if meta.get("parent") == committee:
                 committee_ids.add(cid)
-        matching = [name for name, comms in MEMBER_COMMITTEES.items() if committee_ids & set(comms)]
-        if matching:
-            stmt = stmt.where(Job.source_organization.in_(matching))
-        else:
-            stmt = stmt.where(False)
+        stmt = stmt.where(
+            _employer_condition(
+                session,
+                lambda system, org: (m := find_member(org)) is not None
+                and bool(committee_ids & set(m.committees)),
+            )
+        )
 
     if q:
         dialect = session.bind.dialect.name if session.bind else "sqlite"

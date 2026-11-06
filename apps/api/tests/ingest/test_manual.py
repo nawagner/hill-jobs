@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from app.data.manual_jobs import MANUAL_JOBS
-from app.data.member_parties import MEMBER_PARTIES
+from app.data.members import find_member
 from app.ingest.adapters.manual import ManualAdapter
 from app.ingest.run_all import run_all_sources
 from app.ingest.upsert_jobs import upsert_jobs
@@ -79,6 +79,7 @@ def test_manual_entries_are_well_formed():
     for entry in MANUAL_JOBS:
         # Matches a member name, so the party/state/committee filters apply
         if entry["source_organization"].startswith(("Rep. ", "Senator ")):
-            assert entry["source_organization"] in MEMBER_PARTIES
+            member = find_member(entry["source_organization"])
+            assert member and member.name == entry["source_organization"]
         assert entry["description"]
         assert entry["source_url"].startswith("https://")

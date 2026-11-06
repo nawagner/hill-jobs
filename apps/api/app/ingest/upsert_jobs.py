@@ -7,6 +7,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.categorization.classify_job import classify_job
+from app.data.members import find_member
 from app.ingest.llm_salary_extractor import extract_salary_with_llm
 from app.ingest.salary_parser import parse_salary_from_text
 from app.models.jobs import Job
@@ -225,6 +226,7 @@ def _find_cross_source_duplicate(session: Session, src: SourceJob) -> Job | None
 
     normalized_title = _normalize_for_matching(src.title)
     normalized_org = _normalize_for_matching(src.source_organization)
+    member = find_member(src.source_organization)
 
     candidates = (
         session.execute(
@@ -239,8 +241,13 @@ def _find_cross_source_duplicate(session: Session, src: SourceJob) -> Job | None
 
     for job in candidates:
         candidate_title = _normalize_for_matching(job.title)
-        candidate_org = _normalize_for_matching(job.source_organization)
-        if candidate_org != normalized_org:
+        # The same office, however each source spells it: HVAPS gives
+        # "Rep. Henry C. Johnson" where Domewatch gives "Rep. Hank Johnson".
+        candidate_member = find_member(job.source_organization)
+        if member and candidate_member:
+            if candidate_member.id != member.id:
+                continue
+        elif _normalize_for_matching(job.source_organization) != normalized_org:
             continue
         # Exact match or one title contains the other (catches mangled titles
         # where description text was prepended to the real title)

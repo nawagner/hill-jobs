@@ -391,3 +391,51 @@ def test_date_filters_date_undated_jobs_by_when_first_seen(test_client, db_sessi
 
     assert sorted(j["slug"] for j in recent["items"]) == ["posted-recently", "undated-recent"]
     assert sorted(j["slug"] for j in older["items"]) == ["posted-long-ago", "undated-old"]
+
+
+def _seed_party_signal_jobs(db_session):
+    """Jobs whose party comes from a name variant, a staff name or the source."""
+    now = datetime.now(timezone.utc)
+    rows = [
+        ("kim-sa", "Senator Andy Kim", "senate-webscribble"),
+        ("finance-dem", "Finance - Democrats", "senate-webscribble"),
+        ("foreign-gop", "Foreign Relations - Republicans", "senate-webscribble"),
+        ("hasc-dem", "House Armed Services Committee", "house-dems-resumebank"),
+        ("cleaver-la", "Rep. Emanuel Cleaver, II", "house-dems-resumebank"),
+        ("young-kim-la", "Rep. Young Kim", "house-hvaps"),
+        ("sec-senate", "Secretary of the Senate", "senate-webscribble"),
+    ]
+    for slug, org, system in rows:
+        db_session.add(Job(
+            slug=slug,
+            title="Staff Assistant",
+            source_organization=org,
+            source_system=system,
+            source_job_id=slug,
+            source_url=f"https://example.com/{slug}",
+            status="open",
+            role_kind="operations",
+            description_html="",
+            description_text="",
+            posted_at=now,
+        ))
+    db_session.commit()
+
+
+def test_party_filter_uses_name_variants_staff_names_and_source(test_client, db_session):
+    _seed_party_signal_jobs(db_session)
+    dem = {i["slug"] for i in test_client.get("/api/jobs", params={"party": "D"}).json()["items"]}
+    gop = {i["slug"] for i in test_client.get("/api/jobs", params={"party": "R"}).json()["items"]}
+    assert dem == {"kim-sa", "finance-dem", "hasc-dem", "cleaver-la"}
+    assert gop == {"foreign-gop", "young-kim-la"}
+
+
+def test_state_and_committee_filters_match_senators(test_client, db_session):
+    _seed_party_signal_jobs(db_session)
+    nj = {i["slug"] for i in test_client.get("/api/jobs", params={"state": "NJ"}).json()["items"]}
+    assert "kim-sa" in nj
+    orgs = {o["name"]: o for o in test_client.get("/api/organizations").json()}
+    assert orgs["Senator Andy Kim"]["party"] == "D"
+    assert orgs["Senator Andy Kim"]["committees"]
+    assert orgs["House Armed Services Committee"]["party"] == "D"
+    assert orgs["Secretary of the Senate"]["party"] is None
