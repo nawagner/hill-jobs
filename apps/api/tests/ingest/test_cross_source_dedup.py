@@ -211,3 +211,38 @@ def test_hvaps_internship_not_deduped_against_other_term(db_session):
     )], now)
     assert result.created == 1
     assert result.skipped == 0
+
+
+def test_dedup_matches_one_member_spelled_two_ways(db_session):
+    """HVAPS canonicalizes "Rep. Hank Johnson" to "Rep. Henry C. Johnson"; still a duplicate."""
+    now = datetime.now(timezone.utc)
+    upsert_jobs(db_session, [_make_source_job(
+        source_system="house-dems-resumebank",
+        source_job_id="DW-9",
+        source_organization="Rep. Hank Johnson",
+        title="Legislative Assistant",
+    )], now)
+    result = upsert_jobs(db_session, [_make_source_job(
+        source_system="house-hvaps",
+        source_job_id="MEM-9",
+        source_organization="Rep. Henry C. Johnson",
+        title="Legislative Assistant",
+    )], now)
+    assert result.skipped == 1
+
+
+def test_dedup_does_not_join_two_members_with_one_last_name(db_session):
+    now = datetime.now(timezone.utc)
+    upsert_jobs(db_session, [_make_source_job(
+        source_system="house-dems-resumebank",
+        source_job_id="DW-10",
+        source_organization="Rep. Robert Garcia",
+        title="Scheduler",
+    )], now)
+    result = upsert_jobs(db_session, [_make_source_job(
+        source_system="house-hvaps",
+        source_job_id="MEM-10",
+        source_organization="Rep. Sylvia R. Garcia",
+        title="Scheduler",
+    )], now)
+    assert result.created == 1

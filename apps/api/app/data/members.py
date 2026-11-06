@@ -46,7 +46,10 @@ _NICKNAMES: dict[str, set[str]] = {
 _CHAMBER_PREFIXES = (
     ("senator ", "senate"),
     ("sen. ", "senate"),
+    ("u.s. senator ", "senate"),
+    ("us senator ", "senate"),
     ("rep. ", "house"),
+    ("rep ", "house"),
     ("representative ", "house"),
     ("congresswoman ", "house"),
     ("congressman ", "house"),
@@ -88,10 +91,10 @@ def _display_name(m: dict) -> str:
 
 
 @lru_cache(maxsize=1)
-def _index() -> tuple[dict[str, Member], dict[tuple[str, tuple[str, ...]], list[tuple[Member, set[str]]]]]:
+def _index() -> tuple[dict[str, Member], dict]:
     """Return (canonical name -> Member, (chamber, last-name tokens) -> candidates)."""
     by_name: dict[str, Member] = {}
-    by_last: dict[tuple[str, tuple[str, ...]], list[tuple[Member, set[str]]]] = {}
+    by_last: dict[tuple[str, tuple[str, ...]], list[tuple[Member, tuple[frozenset, ...]]]] = {}
     for m in MEMBERS:
         member = Member(
             id=m["id"],
@@ -103,15 +106,19 @@ def _index() -> tuple[dict[str, Member], dict[tuple[str, tuple[str, ...]], list[
         )
         by_name[member.name] = member
 
-        # Every first name the member might go by.
-        given = set(_tokens(m["first"]))
+        # Names the member goes by first (legal first, nickname, the first
+        # full word of the official name: "Gregory" for "W. Gregory Steube"),
+        # and middle names, used only to tell apart members who share a name.
+        firsts = {t for t in _tokens(m["first"]) if len(t) > 1}
         if m.get("nickname"):
-            given |= set(_tokens(m["nickname"]))
-        if m.get("middle"):
-            given |= set(_tokens(m["middle"]))
+            firsts |= set(_tokens(m["nickname"]))
         full_tokens = _tokens(m["official_full"])
-        if full_tokens:
-            given.add(full_tokens[0])
+        firsts |= {t for t in full_tokens[:1] if len(t) > 1}
+        if len(full_tokens) > 1 and len(full_tokens[0]) == 1:
+            firsts.add(full_tokens[1])
+        middles = set(_tokens(m["middle"])) if m.get("middle") else set()
+        legal_first = set(_tokens(m["first"]))
+        given = (frozenset(firsts), frozenset(firsts | legal_first), frozenset(middles | legal_first))
 
         # The legal last name and the one in official_full can differ
         # ("Hernández Rivera" vs "Pablo José Hernández").
@@ -124,19 +131,36 @@ def _index() -> tuple[dict[str, Member], dict[tuple[str, tuple[str, ...]], list[
     return by_name, by_last
 
 
-def _first_name_matches(candidate_given: set[str], name_given: list[str]) -> bool:
-    for token in name_given:
-        if len(token) == 1:
-            if any(g.startswith(token) for g in candidate_given):
-                return True
-            continue
-        if token in candidate_given:
-            return True
-        if any(g.startswith(token) or token.startswith(g) for g in candidate_given if len(g) > 2):
-            return True
-        if _NICKNAMES.get(token, set()) & candidate_given:
-            return True
-    return False
+def _same_name(token: str, names: frozenset) -> bool:
+    if token in names:
+        return True
+    if any(n.startswith(token) or token.startswith(n) for n in names if len(n) > 2 and len(token) > 2):
+        return True  # Chris / Christopher
+    return bool(_NICKNAMES.get(token, set()) & names)
+
+
+def _pick(candidates: list[tuple[Member, tuple[frozenset, ...]]], given: list[str]) -> Member | None:
+    """Pick the member a name's given names (everything before the last name) mean.
+
+    The first full given name must be a name the member goes by first; a middle
+    initial never stands in for it ("Susan M. Collins" is not Mike Collins).
+    Initials only break a tie between members who both fit.
+    """
+    full = [t for t in given if len(t) > 1]
+    initials = [t for t in given if len(t) == 1]
+    if full:
+        matches = [(c, g) for c, g in candidates if _same_name(full[0], g[0])]
+    else:
+        # "M. Collins": only initials, the first one is the first name's.
+        matches = [(c, g) for c, g in candidates if any(n.startswith(initials[0]) for n in g[1])]
+        initials = initials[1:]
+    if len(matches) > 1 and initials:
+        matches = [
+            (c, g) for c, g in matches
+            if all(any(n.startswith(i) for n in g[1] | g[2]) for i in initials)
+        ]
+    # No fit, or still more than one: a miss, not a guess.
+    return matches[0][0] if len(matches) == 1 else None
 
 
 @lru_cache(maxsize=4096)
@@ -151,9 +175,11 @@ def find_member(source_organization: str | None) -> Member | None:
     chamber, rest = _strip_chamber(source_organization)
     if chamber is None:
         return None
-    # "Richard Blumenthal, Senate Judiciary Committee" -> "Richard Blumenthal";
-    # "Emanuel Cleaver, II" keeps its name, the suffix is dropped by _tokens.
-    rest = rest.split(",")[0] if "," in rest and _tokens(rest.split(",", 1)[1]) else rest
+    # Suffixes go first, wherever a source put them: "Emanuel Cleaver, II",
+    # "Emanuel, II Cleaver" (Domewatch's "Cleaver, Emanuel, II - Rep.").
+    rest = re.sub(r",?\s*\b(?:Jr|Sr|II|III|IV)\b\.?,?", " ", rest)
+    # "Richard Blumenthal, Senate Judiciary Committee" -> "Richard Blumenthal"
+    rest = rest.split(",")[0]
     rest = re.sub(r"\([^)]*\)", " ", rest)  # "(CA-10)"
     tokens = _tokens(rest)
     if len(tokens) < 2:
@@ -168,11 +194,9 @@ def find_member(source_organization: str | None) -> Member | None:
         unique = {c.id: (c, g) for c, g in candidates}
         if not unique:
             continue
-        given = tokens[:-size]
-        matches = [c for c, g in unique.values() if _first_name_matches(g, given)]
         # A first name that fits nobody (e.g. "Rep. Andy Kim" when only Young
         # Kim is in the House) is a miss, not a guess.
-        return matches[0] if len(matches) == 1 else None
+        return _pick(list(unique.values()), tokens[:-size])
     return None
 
 
