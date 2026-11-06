@@ -27,6 +27,20 @@ from app.data.members import employer_party, find_member
         ("Rep. Debbie Wasserman Schultz", "Rep. Debbie Wasserman Schultz"),
         ("Office of Congressman Kevin Mullin", "Rep. Kevin Mullin"),
         ("Congresswoman Analilia Mejia", "Rep. Analilia Mejia"),
+        # A middle initial that is another member's first initial
+        ("Rep. Robert J. Garcia", "Rep. Robert Garcia"),
+        ("Rep. Ritchie J. Torres", "Rep. Ritchie Torres"),
+        ("Rep. Bennie G. Thompson Jr.", "Rep. Bennie G. Thompson"),
+        ("Rep. Ronny L. Jackson", "Rep. Ronny Jackson"),
+        # Domewatch's "Cleaver, Emanuel, II - Rep." after _extract_org
+        ("Rep. Emanuel, II Cleaver", "Rep. Emanuel Cleaver"),
+        ("Rep. Troy A., Sr. Carter", "Rep. Troy A. Carter"),
+        # Initials and other title forms
+        ("Rep. W. Steube", "Rep. W. Gregory Steube"),
+        ("Rep. Greg Steube", "Rep. W. Gregory Steube"),
+        ("U.S. Senator Andy Kim", "Senator Andy Kim"),
+        ("Rep Jim Clyburn", "Rep. James E. Clyburn"),
+        ("Senator Reverend Raphael Warnock", "Senator Raphael G. Warnock"),
     ],
 )
 def test_find_member_variants(source_organization, expected):
@@ -40,6 +54,7 @@ def test_find_member_variants(source_organization, expected):
     [
         "Rep. Andy Kim",  # Andy Kim is a senator; Young Kim is the House Kim
         "Rep. Nonexistent Person",
+        "Rep. Susan M. Collins",  # "M." is not Mike Collins' first name
         "Library of Congress",
         "House Democrats",
         "Senate Employment Office",
