@@ -63,4 +63,9 @@ describe("Filters", () => {
     renderFilters({ selectedOrganization: "Clerk of the House" });
     expect(screen.getByLabelText("Organization")).toHaveValue("Clerk of the House");
   });
+
+  it("keeps a saved member with no open jobs visible", () => {
+    renderFilters({ members: [], selectedMember: "Senator Christopher A. Coons" });
+    expect(screen.getByLabelText("Member")).toHaveValue("Senator Christopher A. Coons");
+  });
 });

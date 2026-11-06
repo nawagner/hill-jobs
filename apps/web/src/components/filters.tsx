@@ -73,6 +73,11 @@ export function Filters({
   onSalaryChange,
   showOlderThan30 = true,
 }: FiltersProps) {
+  // A saved alert or link can name a member with no open jobs right now, who
+  // isn't in the list; keep the choice visible so it can be seen and cleared.
+  const unlistedMember =
+    selectedMember && !members.some((m) => m.name === selectedMember) ? selectedMember : "";
+
   const { senators, representatives } = useMemo(
     () => ({
       senators: members.filter((m) => m.chamber === "senate"),
@@ -139,7 +144,7 @@ export function Filters({
         {legacyOrganization && <option value={legacyOrganization}>{legacyOrganization}</option>}
       </select>
 
-      {members.length > 0 && (
+      {(members.length > 0 || unlistedMember) && (
         <select
           aria-label="Member"
           value={selectedMember}
@@ -161,6 +166,9 @@ export function Filters({
                   ))}
                 </optgroup>
               ),
+          )}
+          {unlistedMember && (
+            <option value={unlistedMember}>{unlistedMember.replace(/^(Senator |Rep\. )/, "")}</option>
           )}
         </select>
       )}

@@ -87,6 +87,7 @@ _STAFF_WORDS = {
     "the", "of", "on", "and", "for", "committee", "committees", "staff", "house",
     "senate", "us", "united", "states", "democrats", "democratic", "republicans",
     "republican", "majority", "minority", "nondesignated", "non", "designated",
+    "select", "special", "permanent",
 }
 
 
@@ -123,7 +124,17 @@ def staff_committee(source_system: str | None, source_organization: str | None) 
         chamber = member.chamber
     else:
         chamber = _CHAMBER_SOURCES.get(employer_organization(source_system, name) or "")
-    if not re.search(r"\bcommittee\b|\s-\s(democrats|republicans)\b", name, re.I):
+    # A name that says its chamber outranks the source ("Senate Judiciary
+    # Committee" is never the House Judiciary Committee).
+    says_senate = bool(re.search(r"\bsenate\b", name, re.I))
+    says_house = bool(re.search(r"\bhouse\b", name, re.I))
+    if says_senate != says_house:
+        chamber = "senate" if says_senate else "house"
+    if not re.search(
+        r"\bcommittee\b|\s-\s(democrats|republicans|non-?designated|majority|minority)\b",
+        name,
+        re.I,
+    ):
         return None
     words = _committee_words(name)
     if not words:

@@ -25,18 +25,6 @@ def upgrade_legacy_filters(filters: dict | None) -> dict:
         filters.pop("organization")
         filters.setdefault("member", member.name)
     return filters
-    member = find_member(organization)
-    if member and not filters.get("member"):
-        filters["member"] = member.name
-    committee = staff_committee(None, organization)
-    if committee and not filters.get("committee"):
-        filters["committee"] = committee
-    top = employer_organization(None, organization)
-    if member or top:
-        filters.pop("organization")
-        if top and not member:
-            filters["organization"] = top
-    return filters
 
 # The "Date posted" choices the alert forms offer. The site's search also has
 # "older_30", which makes no sense for alerts about new jobs.
