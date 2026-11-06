@@ -6,9 +6,8 @@ automated adapter registry.
 """
 
 import logging
-import re
 
-from app.data.member_parties import MEMBER_PARTIES
+from app.data.members import find_member
 from app.ingest.hvaps_pdf_parser import parse_hvaps_pdf
 from app.ingest.salary_parser import parse_salary_from_text
 from app.schemas.ingest import SourceJob
@@ -17,53 +16,15 @@ logger = logging.getLogger(__name__)
 
 SOURCE_SYSTEM = "house-hvaps"
 
-# Build a last-name → canonical-name lookup for Representatives.
-# Handles cases where HVAPS uses a different name variant than the canonical list
-# (e.g., "Rep. Gilbert R. Cisneros Jr." vs canonical "Rep. Gilbert Ray Cisneros").
-_LAST_NAME_TO_CANONICAL: dict[str, list[str]] = {}
-for _name in MEMBER_PARTIES:
-    if not _name.startswith("Rep. "):
-        continue
-    # Extract last name: last whitespace-separated token, ignoring suffixes
-    _parts = _name[5:].split()
-    _last = _parts[-1] if _parts else ""
-    if _last.rstrip(".") in ("Jr", "Sr", "II", "III", "IV"):
-        _last = _parts[-2] if len(_parts) >= 2 else _last
-    _last_lower = _last.lower()
-    _LAST_NAME_TO_CANONICAL.setdefault(_last_lower, []).append(_name)
-
-
 def _resolve_canonical_name(name: str) -> str:
-    """Resolve an HVAPS-extracted Rep name to the canonical MEMBER_PARTIES name.
+    """Resolve an HVAPS-extracted member name to the canonical member name.
 
-    Falls back to the original name if no match or ambiguous.
+    HVAPS uses its own name variants ("Rep. Gilbert R. Cisneros Jr." for
+    "Rep. Gilbert Ray Cisneros"). Falls back to the original name if no member
+    matches.
     """
-    if not name.startswith("Rep. "):
-        return name
-
-    # Exact match — already canonical
-    if name in MEMBER_PARTIES:
-        return name
-
-    # Extract last name from the HVAPS name
-    parts = name[5:].split()
-    last = parts[-1] if parts else ""
-    if last.rstrip(".") in ("Jr", "Sr", "II", "III", "IV"):
-        last = parts[-2] if len(parts) >= 2 else last
-
-    candidates = _LAST_NAME_TO_CANONICAL.get(last.lower(), [])
-    if len(candidates) == 1:
-        return candidates[0]
-
-    # Multiple candidates — try matching first name initial
-    if len(candidates) > 1 and len(parts) >= 1:
-        first = parts[0].rstrip(".").lower()
-        for c in candidates:
-            c_first = c[5:].split()[0].rstrip(".").lower()
-            if c_first.startswith(first) or first.startswith(c_first):
-                return c
-
-    return name
+    member = find_member(name)
+    return member.name if member else name
 
 
 def parse_hvaps_source_jobs(pdf_bytes: bytes, pdf_url: str) -> list[SourceJob]:

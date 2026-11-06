@@ -3,9 +3,9 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.categorization.role_kinds import ROLE_KINDS
-from app.data.member_committees import COMMITTEES, MEMBER_COMMITTEES
-from app.data.member_parties import MEMBER_PARTIES
-from app.data.member_states import MEMBER_STATES
+from app.data.member_committees import COMMITTEES
+from app.data.member_data import MEMBERS
+from app.data.members import employer_party, find_member
 from app.db import get_db
 from app.models.jobs import Job
 from app.schemas.jobs import (
@@ -41,7 +41,8 @@ router = APIRouter(prefix="/api")
 
 def _get_member_committee_names(org_name: str) -> list[str] | None:
     """Resolve a member's committee codes to unique parent committee names."""
-    codes = MEMBER_COMMITTEES.get(org_name)
+    member = find_member(org_name)
+    codes = member.committees if member else None
     if not codes:
         return None
     # Collect unique parent committee names (skip subcommittees to keep it concise)
@@ -115,28 +116,26 @@ def get_job(slug: str, db: Session = Depends(get_db)):
 @router.get("/organizations")
 def list_organizations(db: Session = Depends(get_db)) -> list[OrganizationItem]:
     stmt = (
-        select(Job.source_organization)
+        select(Job.source_organization, Job.source_system)
         .where(Job.status != "closed")
         .distinct()
-        .order_by(Job.source_organization)
+        .order_by(Job.source_organization, Job.source_system)
     )
-    rows = db.execute(stmt).scalars().all()
+    rows = db.execute(stmt).all()
 
     seen: set[str] = set()
     result: list[OrganizationItem] = []
-    for name in rows:
+    for name, system in rows:
         if name in seen:
             continue
         seen.add(name)
-        party = MEMBER_PARTIES.get(name)
-        state = MEMBER_STATES.get(name)
-        committees = MEMBER_COMMITTEES.get(name)
+        member = find_member(name)
         result.append(OrganizationItem(
             name=name,
             source_system=None,
-            party=party,
-            state=state,
-            committees=committees,
+            party=employer_party(system, name),
+            state=member.state if member else None,
+            committees=list(member.committees) if member else None,
         ))
     return result
 
@@ -148,7 +147,7 @@ def list_role_kinds() -> list[str]:
 
 @router.get("/states", response_model=list[StateItem])
 def list_states() -> list[StateItem]:
-    codes = sorted(set(MEMBER_STATES.values()))
+    codes = sorted({m["state"] for m in MEMBERS})
     return [
         StateItem(code=code, name=STATE_NAMES.get(code, code))
         for code in codes

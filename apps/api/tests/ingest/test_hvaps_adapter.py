@@ -2,7 +2,7 @@ from app.ingest.adapters.hvaps import _resolve_canonical_name
 
 
 def test_resolve_exact_match():
-    """Name already in MEMBER_PARTIES should be returned as-is."""
+    """A canonical member name should be returned as-is."""
     assert _resolve_canonical_name("Rep. Gilbert Ray Cisneros") == "Rep. Gilbert Ray Cisneros"
 
 

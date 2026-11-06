@@ -4,9 +4,10 @@
 # removed or its closing_at passes. source_job_id must stay the same once a
 # job is live, or it gets a new slug.
 #
-# source_organization uses the names in member_parties.py ("Rep. First Last")
-# so the party, state and committee filters work, and so an HVAPS or Domewatch
-# copy of the same job is recognized as a duplicate.
+# source_organization uses a member's canonical name ("Rep. First Last", as
+# app.data.members.find_member returns it) so the party, state and committee
+# filters work, and so an HVAPS or Domewatch copy of the same job is recognized
+# as a duplicate.
 
 from datetime import datetime, timezone
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-06
+
+- Fix the party, state and committee filters missing member offices whose names didn't exactly match the lookup table; 20 open jobs had no party, about 12% of Democratic listings
+  - The member table is now generated from unitedstates/congress-legislators by `apps/api/scripts/generate_member_data.py`. The old one filed about 100 senators under "Rep.", so "Senator Andy Kim" or "Senator Christopher A. Coons" never matched, and it was missing members who joined since (Rep. Analilia Mejia)
+  - Member names are matched by chamber, last name and first name, ignoring accents, middle initials, suffixes and nicknames ("Rep. Emanuel Cleaver, II", "Senator Dick Durbin", "Senator Richard Blumenthal, Senate Judiciary Committee")
+  - Committee staff jobs get their party from their name ("Finance - Democrats", "Democratic Staff of the Committee on Rules"), and every House Democrats resume bank listing counts as Democratic
+
 ## 2026-10-20
 
 - Add a `manual` source for jobs no adapter reads, kept in `apps/api/app/data/manual_jobs.py` and synced by the daily ingest like any other source
