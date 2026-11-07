@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-07
+
+- Update Playwright from 1.58.0 to 1.64.1. GitHub's `ubuntu-latest` runner moved to Ubuntu 26.04, which 1.58 can't install Chromium on, so the Test workflow failed on every push to `main` before any test ran
+
 ## 2026-11-06
 
 - Group the Organization filter into nine top-level organizations (U.S. Senate, U.S. House of Representatives, Architect of the Capitol, CBO, GAO, GPO, Library of Congress, U.S. Capitol Police, Congressional Commissions) instead of every office name a source uses
