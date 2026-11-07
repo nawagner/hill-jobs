@@ -1,4 +1,4 @@
-"""Extract salary from job description text using Gemini via OpenRouter.
+"""Extract salary from job description text using Claude Haiku via OpenRouter.
 
 Used as a fallback when regex-based salary parsing finds nothing.
 """
@@ -14,7 +14,10 @@ from app.ingest.salary_parser import ParsedSalary
 logger = logging.getLogger(__name__)
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "google/gemini-3.1-flash-lite-preview"
+# Claude Haiku 5.5: the highest Artificial Analysis Intelligence Index score
+# among the low-cost fast models (Nov 2026), at $0.10 / $0.50 per 1M tokens,
+# below Gemini 3.1 Flash-Lite's $0.25 / $1.50.
+MODEL = "anthropic/claude-haiku-5.5"
 
 SYSTEM_PROMPT = """\
 Extract salary information from the following job posting text.
@@ -32,7 +35,7 @@ def extract_salary_with_llm(
     description_text: str,
     api_key: str | None = None,
 ) -> ParsedSalary | None:
-    """Call Gemini Flash Lite to extract salary from unstructured text.
+    """Call Claude Haiku to extract salary from unstructured text.
 
     Returns ParsedSalary if the model finds salary info, None otherwise.
     """
@@ -57,6 +60,8 @@ def extract_salary_with_llm(
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": text},
                 ],
+                # The answer is one short JSON object.
+                "max_tokens": 200,
             },
             timeout=30,
         )
