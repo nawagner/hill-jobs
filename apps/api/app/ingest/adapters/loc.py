@@ -37,8 +37,12 @@ _MONEY_RE = re.compile(r"[\d,]+(?:\.\d+)?")
 class LocAdapter:
     source_system = SOURCE_SYSTEM
 
-    def __init__(self, detail_delay: float = DETAIL_DELAY_SECONDS):
+    def __init__(self, detail_delay: float = DETAIL_DELAY_SECONDS, max_details: int | None = None):
         self.detail_delay = detail_delay
+        # Fetch detail pages (salary, location, full posting) for at most this
+        # many jobs; None fetches all. The live test caps it, since loc.gov
+        # throttles GitHub's runners hard enough to stall a full run for an hour.
+        self.max_details = max_details
 
     def fetch_jobs(self, client: httpx.Client) -> list[SourceJob]:
         results: list[dict] = []
@@ -51,7 +55,8 @@ class LocAdapter:
                 break
 
         jobs = parse_results(results)
-        for i, job in enumerate(jobs):
+        detailed = jobs if self.max_details is None else jobs[: self.max_details]
+        for i, job in enumerate(detailed):
             if i and self.detail_delay:
                 time.sleep(self.detail_delay)
             try:

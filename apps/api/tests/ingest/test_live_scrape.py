@@ -28,9 +28,14 @@ def senate_jobs(http_client):
     return SenateAdapter().fetch_jobs(http_client)
 
 
+# Detail pages for a few jobs only: loc.gov throttles GitHub's runners, and
+# fetching every detail page stalled the live run for 50+ minutes in Nov 2026.
+LOC_LIVE_DETAILS = 3
+
+
 @pytest.fixture(scope="module")
 def loc_jobs(http_client):
-    return LocAdapter().fetch_jobs(http_client)
+    return LocAdapter(max_details=LOC_LIVE_DETAILS).fetch_jobs(http_client)
 
 
 @pytest.fixture(scope="module")
@@ -75,6 +80,14 @@ def test_loc_fields(loc_jobs):
     assert job.title
     assert job.source_url
     assert job.source_system == "loc-careers"
+
+
+def test_loc_detail_pages_still_parse(loc_jobs):
+    # Catches a change to the detail JSON, which carries the salary.
+    detailed = loc_jobs[:LOC_LIVE_DETAILS]
+    assert any(j.salary_min or j.salary_max for j in detailed), (
+        "No salary from any LoC detail page; the detail JSON may have changed"
+    )
 
 
 # ── House Dems Resume Bank ──────────────────────────────────────────────
