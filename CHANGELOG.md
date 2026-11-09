@@ -1,13 +1,10 @@
 # Changelog
 
-## 2026-11-07 (salary model)
-
-- Switch the salary-extraction fallback from Gemini 3.1 Flash-Lite (preview) to Claude Haiku 5.5 on OpenRouter: higher Artificial Analysis Intelligence Index score and lower price ($0.10 / $0.50 per 1M tokens, from $0.25 / $1.50)
-
 ## 2026-11-07
 
 - Update Playwright from 1.58.0 to 1.64.1. GitHub's `ubuntu-latest` runner moved to Ubuntu 26.04, which 1.58 can't install Chromium on, so the Test workflow failed on every push to `main` before any test ran
 - Limit the Test workflow to 25 minutes, and have the live Library of Congress test fetch 3 job detail pages instead of all of them. loc.gov throttles GitHub's runners, which held a live run for 50+ minutes
+- Switch the salary-extraction fallback from Gemini 3.1 Flash-Lite (preview) to Claude Haiku 5.5 on OpenRouter: higher Artificial Analysis Intelligence Index score and lower price ($0.10 / $0.50 per 1M tokens, from $0.25 / $1.50)
 
 ## 2026-11-06
 
