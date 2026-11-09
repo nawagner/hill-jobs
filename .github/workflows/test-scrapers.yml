@@ -18,6 +18,9 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Normal runs take 5 to 10 minutes. Without a limit, a site that throttles
+    # GitHub's runners holds the job for GitHub's 6-hour maximum.
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +47,7 @@ jobs:
 
       - name: Run live scrape tests
         if: github.event_name != 'pull_request'
+        timeout-minutes: 20
         working-directory: apps/api
         env:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
