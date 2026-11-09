@@ -155,3 +155,22 @@ def test_fetch_jobs_retries_dropped_connection(monkeypatch):
     assert detail_calls == 2
     assert sleeps == [4.0]
     assert jobs[0].salary_min == 143_913.00
+
+
+def test_fetch_jobs_max_details_limits_detail_requests():
+    """The live test caps detail fetches; every listing is still returned."""
+    detail_calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal detail_calls
+        if str(request.url) == LISTING_URL:
+            return httpx.Response(200, json={"results": _listing()["results"], "pagination": {"next": None}})
+        detail_calls += 1
+        return httpx.Response(200, json=_detail())
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        jobs = LocAdapter(detail_delay=0, max_details=2).fetch_jobs(client)
+
+    assert len(jobs) == 6
+    assert detail_calls == 2
+    assert [j.salary_min for j in jobs[:2]] == [143_913.00, 143_913.00]
