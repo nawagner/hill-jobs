@@ -74,6 +74,7 @@ Public:
 Protected (requires `x-internal-token` header):
 - `POST /api/internal/ingest/run`
 - `POST /api/internal/ingest/hvaps?pdf_url=<url>` — HVAPS PDF bulletin ingest (manual fallback; HVAPS is normally picked up automatically from Gmail)
+- `POST /api/internal/subscribers/resend-confirmations?since=<date>[&dry_run=true]` — resend the confirmation email to unconfirmed sign-ups since that date (UTC), e.g. after Resend was down. Run with `dry_run=true` first to see who would get one
 
 ## Triggering Ingestion
 

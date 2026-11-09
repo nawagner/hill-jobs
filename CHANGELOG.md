@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-09
+
+- Add `POST /api/internal/subscribers/resend-confirmations?since=<date>` (internal token) to resend confirmation emails to unconfirmed sign-ups. The Resend key had been rejected since at least Nov 2, so sign-ups got an error and no confirmation link, and the Nov 9 digest failed until the key was replaced
+
 ## 2026-11-07
 
 - Update Playwright from 1.58.0 to 1.64.1. GitHub's `ubuntu-latest` runner moved to Ubuntu 26.04, which 1.58 can't install Chromium on, so the Test workflow failed on every push to `main` before any test ran

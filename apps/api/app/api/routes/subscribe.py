@@ -23,6 +23,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/subscribe")
 
 
+def send_confirmation_email(settings, email: str, confirm_token: str) -> None:
+    """Email the link that confirms a subscription. Raises if Resend refuses it."""
+    confirm_url = f"{settings.site_base_url}/subscribe/confirm/{confirm_token}"
+    send_email(
+        api_key=settings.resend_api_key,
+        to=email,
+        subject="Confirm your Hill Jobs subscription",
+        html=build_confirmation_html(confirm_url),
+    )
+
+
 @router.post("", response_model=SubscribeResponse, status_code=201)
 def subscribe(body: SubscribeRequest, db: Session = Depends(get_db)):
     settings = get_settings()
@@ -49,15 +60,8 @@ def subscribe(body: SubscribeRequest, db: Session = Depends(get_db)):
         db.add(existing)
         db.commit()
 
-    confirm_url = f"{settings.site_base_url}/subscribe/confirm/{existing.confirm_token}"
-
     if settings.resend_api_key:
-        send_email(
-            api_key=settings.resend_api_key,
-            to=body.email,
-            subject="Confirm your Hill Jobs subscription",
-            html=build_confirmation_html(confirm_url),
-        )
+        send_confirmation_email(settings, body.email, existing.confirm_token)
     else:
         logger.warning("RESEND_API_KEY not set; skipping confirmation email")
 
