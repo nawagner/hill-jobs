@@ -88,3 +88,12 @@ def test_infers_period_when_missing():
         result = extract_salary_with_llm("some text", api_key="test-key")
     assert result is not None
     assert result.period == "yearly"
+
+
+def test_requests_claude_haiku():
+    resp = _mock_response('{"min": 50000, "max": 75000, "period": "yearly"}')
+    with patch("app.ingest.llm_salary_extractor.httpx.post", return_value=resp) as post:
+        extract_salary_with_llm("some text", api_key="test-key")
+    body = post.call_args.kwargs["json"]
+    assert body["model"] == "anthropic/claude-haiku-5.5"
+    assert body["max_tokens"] == 200
