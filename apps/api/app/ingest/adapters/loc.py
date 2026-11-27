@@ -27,6 +27,11 @@ MAX_PAGES = 10
 DETAIL_DELAY_SECONDS = 1.0
 # Under load loc.gov sometimes stalls mid-response; fail fast and retry.
 REQUEST_TIMEOUT_SECONDS = 20.0
+# loc.gov occasionally answers the listing with a 200 and no results while it
+# is struggling (it did on 2026-11-27, when the same listing had 17 jobs an hour
+# later). The library always has openings, so wait and refetch before
+# reporting an empty source.
+EMPTY_LISTING_RETRY_DELAYS = (30.0, 60.0)
 
 # Titles end with the vacancy number in a few spellings:
 # "(Vacancy#: VAR003371)", "(Vacancy#:VAR003462)", "(Vacancy#VAR003461)"
@@ -45,14 +50,13 @@ class LocAdapter:
         self.max_details = max_details
 
     def fetch_jobs(self, client: httpx.Client) -> list[SourceJob]:
-        results: list[dict] = []
-        url = LISTING_URL
-        for _ in range(MAX_PAGES):
-            data = _get_json(client, url)
-            results.extend(data.get("results") or [])
-            url = (data.get("pagination") or {}).get("next")
-            if not url:
+        results = _fetch_listing(client)
+        for delay in EMPTY_LISTING_RETRY_DELAYS:
+            if results:
                 break
+            logger.warning("LOC listing returned no results; retrying in %.0fs", delay)
+            time.sleep(delay)
+            results = _fetch_listing(client)
 
         jobs = parse_results(results)
         detailed = jobs if self.max_details is None else jobs[: self.max_details]
@@ -64,6 +68,18 @@ class LocAdapter:
             except Exception:
                 logger.exception("Failed to fetch LOC detail for %s", job.source_url)
         return jobs
+
+
+def _fetch_listing(client: httpx.Client) -> list[dict]:
+    results: list[dict] = []
+    url = LISTING_URL
+    for _ in range(MAX_PAGES):
+        data = _get_json(client, url)
+        results.extend(data.get("results") or [])
+        url = (data.get("pagination") or {}).get("next")
+        if not url:
+            break
+    return results
 
 
 def _get_json(client: httpx.Client, url: str, retries: int = 3) -> dict:

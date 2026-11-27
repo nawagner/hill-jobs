@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-27
+
+- Retry the Library of Congress listing (after 30s, then 60s) when loc.gov answers with no results. On 2026-11-27 it returned an empty but successful response at 10:06 UTC, which failed that day's `ingest-cron` run and skipped LoC's update; the same listing had 17 jobs an hour later
+
 ## 2026-11-07
 
 - Update Playwright from 1.58.0 to 1.64.1. GitHub's `ubuntu-latest` runner moved to Ubuntu 26.04, which 1.58 can't install Chromium on, so the Test workflow failed on every push to `main` before any test ran

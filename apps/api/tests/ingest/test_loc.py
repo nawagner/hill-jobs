@@ -174,3 +174,44 @@ def test_fetch_jobs_max_details_limits_detail_requests():
     assert len(jobs) == 6
     assert detail_calls == 2
     assert [j.salary_min for j in jobs[:2]] == [143_913.00, 143_913.00]
+
+
+def test_fetch_jobs_retries_empty_listing(monkeypatch):
+    """loc.gov sometimes answers the listing with a 200 and no results; refetch it."""
+    sleeps: list[float] = []
+    monkeypatch.setattr("app.ingest.adapters.loc.time.sleep", sleeps.append)
+    listing_calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal listing_calls
+        if str(request.url) == LISTING_URL:
+            listing_calls += 1
+            results = [] if listing_calls == 1 else _listing()["results"]
+            return httpx.Response(200, json={"results": results, "pagination": {"next": None}})
+        return httpx.Response(200, json=_detail())
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        jobs = LocAdapter(detail_delay=0).fetch_jobs(client)
+
+    assert listing_calls == 2
+    assert sleeps == [30.0]
+    assert len(jobs) == 6
+
+
+def test_fetch_jobs_gives_up_on_persistently_empty_listing(monkeypatch):
+    """After the retries, an empty listing is returned as [] so the cron flags it."""
+    sleeps: list[float] = []
+    monkeypatch.setattr("app.ingest.adapters.loc.time.sleep", sleeps.append)
+    listing_calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal listing_calls
+        listing_calls += 1
+        return httpx.Response(200, json={"results": [], "pagination": {"next": None}})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        jobs = LocAdapter(detail_delay=0).fetch_jobs(client)
+
+    assert jobs == []
+    assert listing_calls == 3
+    assert sleeps == [30.0, 60.0]
